@@ -3,14 +3,20 @@
 # %%
 # import packages
 import numpy as np
-import xarray as xr
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import cartopy.crs as ccrs                   # import projections
 import cartopy.feature as cfeature           # import features
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import os
+import pandas as pd
+from matplotlib.gridspec import GridSpec
+
 
 # import my own script
-import readers.read_MWCC_H as mwcc
+import readers.read_processed_MWCC_H as mwcc
+import readers.read_MSG as msg
+import helpers.helper_conversions as hlp
 
 # %%
 channel_names = {"1": "VIS 0.6", 
@@ -25,9 +31,79 @@ channel_names = {"1": "VIS 0.6",
                 "10": "IR 12.0", 
                 "11": "IR 13.4 - CO2", }
 
+channels = ["IR_016", "IR_039", "IR_087", "IR_097", "IR_108", "IR_120", "IR_134", \
+            "VIS006", "VIS008", "WV_062", "WV_073"]
 
 # %%
-def _plot_msg_radiances(ax, msg_lons, msg_lats, msg_radiances, transform=ccrs.PlateCarree(), cbar_loc='left'):
+CMAP_MSG = mpl.cm.Greys
+BORDER_COLOR = 'yellow'
+LABEL_SIZE = 12
+TICK_SIZE = 10
+
+def _get_mwcch_color_levels(with_zero=False):
+
+    levels = [0] if with_zero else []
+    colors = ['#F5F5F5'] if with_zero else []
+
+    # define levels for contour plot and ...
+    levels.extend([.1, .15, .2, .25, .3, .36, .4, .5, .6, .7, .8, .9, 1])
+    # colors for colobar
+    colors.extend(['#E3E3E3', '#C4C4C4', '#B0B0B0', '#9E9E9E', '#858585', 
+              '#98F5FF', '#00EEEE', '#008B8B', '#000080', 
+              '#00FF00', '#FFFF00', '#FF0000'])
+
+    return levels, colors
+
+def _draw_mwcch_colorbar(fig, ax, orientation='vertical'):
+
+    levels, colors = _get_mwcch_color_levels(with_zero=True)
+    cmap = mpl.colors.ListedColormap(colors)
+    norm = mpl.colors.BoundaryNorm(levels, cmap.N)
+    cbar = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap, norm=norm),
+                        cax=ax, orientation=orientation,
+                        spacing='uniform',
+                        #label='probability of hail',
+                        ticks=levels)
+
+    cbar.ax.set_yticklabels([f'{l:g}' for l in levels])
+    cbar.set_label('probability of hail', fontsize=LABEL_SIZE)
+    cbar.ax.tick_params(labelsize=TICK_SIZE)
+
+def _draw_msg_colorbar(fig, ax, label, vmin=None, vmax=None, orientation='vertical'):
+
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=CMAP_MSG),
+                 cax=ax, orientation=orientation, )
+                 #label=label)
+
+    cbar.set_label(label, fontsize=LABEL_SIZE)
+    cbar.ax.tick_params(labelsize=TICK_SIZE)
+    ax.yaxis.set_ticks_position('left')
+    ax.yaxis.set_label_position('left')
+
+def _format_map_plot(ax, extent, title=None):
+    #set axis thick labels
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                    linewidth=0.75, color='gray', alpha=0.6, linestyle='--')
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'size': TICK_SIZE, 'color': 'black'}
+    gl.ylabel_style = {'size': TICK_SIZE, 'color': 'black'}
+
+    # Adds coastlines and borders to the current axes
+    ax.add_feature(cfeature.COASTLINE.with_scale('50m'), linewidth=0.5, color=BORDER_COLOR)
+    ax.add_feature(cfeature.STATES, linewidth=0.2)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5, color=BORDER_COLOR)
+
+    # set extent and add title
+    ax.set_extent(extent) #[left, right, bottom ,top]
+    ax.set_title(title, fontsize=LABEL_SIZE)
+
+# %%
+def _plot_msg_data(ax, msg_lons, msg_lats, msg_tb, vmin=None, vmax=None, transform=ccrs.PlateCarree()):
     """ plot the given msg channel as pcolormesh
 
     Parameters
@@ -48,18 +124,13 @@ def _plot_msg_radiances(ax, msg_lons, msg_lats, msg_radiances, transform=ccrs.Pl
     # create 2d grid from lons and lats 1d-arrays
     xs, ys = np.meshgrid(msg_lons, msg_lats)
     # mask all nan values in radiances
-    # Zm = np.ma.masked_where(np.isnan(msg_radiances), msg_radiances)
-    Zm = np.ma.masked_invalid(msg_radiances)
+    Zm = np.ma.masked_invalid(msg_tb)
     # plot data with colormap
-    pc = ax.pcolormesh(xs, ys, Zm, cmap='Greys', transform=transform)
+    pc = ax.pcolormesh(xs, ys, Zm, cmap=CMAP_MSG, vmin=vmin, vmax=vmax, transform=transform)
 
-    # setup colorbar  
-    cbar_msg = plt.colorbar(pc,ax=ax,shrink=0.74, location=cbar_loc)
-    cbar_msg.set_label('radiances',fontsize=14)
-    cbar_msg.ax.tick_params(labelsize=14)
+    return pc
 
-
-def _plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, projection=ccrs.PlateCarree(), cbar_loc='right'):
+def _plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, projection=ccrs.PlateCarree()):
     """ plot the hail probability of MWCC-H
 
     Parameters
@@ -77,49 +148,16 @@ def _plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, projection=ccrs.PlateCarree(
     cbar_loc : str, optional
         location of colorbar on axis, by default 'right'
     """
-    # define levels for contour plot and colors for colobar
-    levels = [.1, .15, .2, .25, .3, .36, .4, .5, .6, .7, .8, .9, 1]
-    levels_str = ['0.1', '0.15', '0.2', '0.25', '0.3', '0.36', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1'] # first level: 0, color: '#F5F5F5'
-    colors = ['#E3E3E3', '#C4C4C4', '#B0B0B0', '#9E9E9E', '#858585', 
-              '#98F5FF', '#00EEEE', '#008B8B', '#000080', 
-              '#00FF00', '#FFFF00', '#FF0000']
-    
+
+    levels, colors = _get_mwcch_color_levels()
     # mask nan values and plot hail probability contours
     z = np.ma.masked_invalid(mwcc_poh)
     ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
-    cntr2 = ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+    ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
-    # setup colorbar
-    cbar = plt.colorbar(cntr2, ax=ax, shrink=0.74, ticks=levels, location=cbar_loc)
-    cbar.set_label('probability of hail',fontsize=14)
-    cbar.ax.set_yticklabels(levels_str)
-    cbar.ax.tick_params(labelsize=14)
-
-
-def _format_axes(ax):
-    """ format axis
-
-    Parameters
-    ----------
-    ax : cartopy axis
-        current axis that is to be formated
-    """
-    ax.spines["top"].set_linewidth(3)
-    ax.spines["right"].set_linewidth(3)
-    ax.spines["bottom"].set_linewidth(3)
-    ax.spines["left"].set_linewidth(3)
-
-    # draw ticks and labels TODO: doesn't show ticks and labels - find out why!
-    ax.tick_params(axis='both',which='major',labelsize=14)
-    ax.set_xlabel('Latitude [$^{\circ}$]')
-    ax.set_ylabel('Longitude [$^{\circ}$]')
-    ax.tick_params(which='minor', length=5, width=2)
-    ax.tick_params(which='major', length=7, width=3)
-    
-
-def plot_mwcch_over_MSG_radiances(mwcc_lons, mwcc_lats, mwcc_poh, msg_lons, msg_lats, msg_radiances,
-                                  extent=None, projection=ccrs.PlateCarree(), transform=ccrs.PlateCarree(), 
-                                  title=None, path_out=None):
+def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb, mwcc_lons=None, mwcc_lats=None, mwcc_poh=None, channelname=None,
+                        vmin=None, vmax=None, extent=None, projection=ccrs.PlateCarree(), transform=ccrs.PlateCarree(), 
+                        transparent=True, title=None, path_out=None):
     """ plot probability of hail contour over MSG radiances
 
     Parameters
@@ -148,77 +186,105 @@ def plot_mwcch_over_MSG_radiances(mwcc_lons, mwcc_lats, mwcc_poh, msg_lons, msg_
         complete path to output figure, by default None
     """
     # create figure mit cartopy axis of certain projection
-    fig = plt.figure(figsize=(14,10))
-    ax = fig.add_subplot(1, 1, 1, projection=projection)
+    #fig = plt.figure(figsize=(7,5))
 
-    # set plotting extent and title
-    if extent is not None:
-        ax.set_extent([extent[0], extent[1], extent[2], extent[3]])
-    if title is not None:
-        ax.set_title(title)
-    
-    # cartopy features 
-    ax.add_feature(cfeature.COASTLINE.with_scale('50m'), linewidth=0.5, color='k')
-    ax.add_feature(cfeature.STATES, linewidth=0.2)
-    ax.add_feature(cfeature.BORDERS, linewidth=1., color='k')
+    fig = plt.figure(figsize=(6, 5)) #, layout="constrained")
+
+    # devide figure in axes for colorbars and plot
+    gs = GridSpec(3, 4, figure=fig, width_ratios=[0.05, 0.1, 0.8, 0.05], height_ratios=[0.1, 0.8, 0.1])
+    ax_cbar_msg = fig.add_subplot(gs[1, 0])
+    ax_plot = fig.add_subplot(gs[:, 2], projection=projection)
+    ax_cbar_mwcch = fig.add_subplot(gs[1, -1])
+
+    # draw MSG colorbar
+    msg_label = 'reflectance' if 'VIS' in channelname else 'brightness temperature'
+    _draw_msg_colorbar(fig, ax_cbar_msg, msg_label, vmin=vmin, vmax=vmax, orientation='vertical')
+
+    # draw MWCC-H colorbar
+    _draw_mwcch_colorbar(fig, ax_cbar_mwcch, orientation='vertical')
+
+    # format the axis for the map
+    _format_map_plot(ax_plot, extent, title=title)
 
     # plot msg channel
-    _plot_msg_radiances(ax, msg_lons, msg_lats, msg_radiances, transform=transform, cbar_loc='left')
+    _plot_msg_data(ax_plot, msg_lons, msg_lats, msg_tb, vmin=vmin, vmax=vmax, transform=transform)
     
-    # plot mwcc-h probability of hail
-    _plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, projection=projection, cbar_loc='right')
-
-    # format axis
-    _format_axes(ax)
+    # plot hail probability if not None
+    if mwcc_poh is not None and mwcc_lons is not None and mwcc_lats is not None:
+        # plot mwcc-h probability of hail
+        _plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, projection=projection)
 
     # save to file
     if path_out is not None:
-        plt.savefig(path_out, bbox_inches='tight', transparent=True)
+        plt.savefig(path_out, bbox_inches='tight', transparent=transparent)
         print('file saved')
     plt.show()
     plt.close()
 
 # %%
 if __name__ == '__main__':
-    # example files
-    example_mwcch = "mhs_METOPB_20230724-S1905-E2046_056289"
-    example_METOPB = "1C-gm.METOPB.MHS.XCAL2016-V.20230724-S190516-E204636.056289.V07A.HDF5"
-    example_MSG = "/net/norte/pbigalke/Alps/data/msg/2023-07-24/HRSEVIRI_20230724T193009Z_20230724T194242Z_epct_b890f782_PC.nc"
     
+    mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    msg_path = "/data/sat/msg/netcdf/parallax"
+    years = [2022]
+    months = [6]
+    days = [5]
+    detectors = ["ATMS", "MHS", "SSMIS"]
+    #all_mwcch_files = mwcc.get_mwcch_files_in_study_period(mwcch_path, detectors, years, months, days)
+    all_msg_files = msg.get_MSG_files_in_study_period(msg_path, years, months, days)
+    #print(all_mwcch_files)
+    print(all_msg_files)
+    
+
     # define domain
-    domain = {"minlon":5., "maxlon":16., "minlat":42., "maxlat":51.5}
-    extent=[domain["minlon"], domain["maxlon"], domain["minlat"], domain["maxlat"]]
+    expats_domain = {"minlon":5., "maxlon":16., "minlat":42., "maxlat":51.5}
+    german_domain_small = {"minlon":8.3, "maxlon":13., "minlat":47.5, "maxlat":49.5}
+    german_domain = {"minlon":7.5, "maxlon":13., "minlat":47.5, "maxlat":51.5}
+    
+    #extent=[expats_domain["minlon"], expats_domain["maxlon"], expats_domain["minlat"], expats_domain["maxlat"]]
+    extent=[german_domain["minlon"], german_domain["maxlon"], german_domain["minlat"], german_domain["maxlat"]]
 
-    # read data from MWCC-H file
-    data_mwcc = mwcc.read(example_mwcch, satellite='METOPB', domain=domain)
-    mwcc_lons = data_mwcc.lon.values
-    mwcc_lats = data_mwcc.lat.values
-    mwcc_poh = data_mwcc.POH.values
+    # define channels to plot
+    channel = "IR_108"
 
-    # read msg data
-    with xr.open_dataset(example_MSG) as dataset:
-        print("file read")
-        data_msg = dataset
+    for f in all_msg_files:
+        # read in msg data of that day
+        data_msg = msg.read(f)
 
-    # loop over all channels
-    for ch in np.arange(1, 12, 1):
+        # get range of values
+        min_val = np.nanmin(data_msg[f"{channel}"].values)
+        max_val = np.nanmax(data_msg[f"{channel}"].values)
 
-        print('plot channel ', ch)
-        msg_radiances = data_msg[f"channel_{ch}"].values
-        msg_lons = data_msg.lon.values
-        msg_lats = data_msg.lat.values
+        # loop over timestamps
+        for timestamp in data_msg.time.values:
+            dt = hlp.get_datestring_from_npdatetime(timestamp)
 
-        # define output location and file name
-        output_path = "output"
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        out_name = f'test_msg_ch{ch}_poh.png'
+            # check if mwcch file is in this timestamp
+            mwcc_files = mwcc.get_mwcch_file_at_msg_timestamp(mwcch_path, detectors, timestamp)
 
-        # plot msg and poh
-        title = f'2023-07-24 19:42 : MSG - {channel_names[f"{ch}"]}'
-        plot_mwcch_over_MSG_radiances(mwcc_lons, mwcc_lats, mwcc_poh, msg_lons, msg_lats, msg_radiances,
-                                      title=title, path_out=os.path.join(output_path, out_name))
-        break
+            # read data from MWCC-H file if there is any
+            data_mwcc = mwcc.read(mwcc_files[0]) if len(mwcc_files) > 0 else None
+            mwcc_lons = data_mwcc.lon.values if len(mwcc_files) > 0 else None
+            mwcc_lats = data_mwcc.lat.values if len(mwcc_files) > 0 else None
+            mwcc_poh = data_mwcc.POH.values if len(mwcc_files) > 0 else None
+
+            # get msg data for this timestamp
+            msg_lons = data_msg.sel(time=timestamp).lon.values
+            msg_lats = data_msg.sel(time=timestamp).lat.values
+            msg_tb = data_msg.sel(time=timestamp).IR_108.values
+
+            # define output location and file name
+            output_path = "/net/merisi/pbigalke/plots/data_investigation/case_study_20220605/MSG_MWCCH/german_domain"
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            out_name = f'{dt}_msg_{channel}_poh.png'
+
+            # plot msg and poh
+            title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]} : MSG - {channel}'
+            plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb, mwcc_lons=mwcc_lons, mwcc_lats=mwcc_lats, mwcc_poh=mwcc_poh, 
+                                channelname=channel, vmin=min_val, vmax=max_val, extent=extent, transparent=False, 
+                                title=title, path_out=os.path.join(output_path, out_name))
+
 
     
 # %%
