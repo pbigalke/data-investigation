@@ -7,26 +7,36 @@ from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 
 def main():
-  datapath = "/net/merisi/pbigalke/data/MWCC-H/MWCC-H"
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H"
+  datapath = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
+  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new"
   if not os.path.exists(plotpath):
      os.makedirs(plotpath)
   years = np.arange(1999, 2024, 1)
   months = np.arange(4, 10, 1)
+  # years = np.arange(1999, 2024, 1)
+  # months = np.arange(1, 13, 1)
 
   # count number of files per year, month and satellite
   satellites, total_n_files = count_occurences(datapath, years, months)
 
   # plot satellite deployment overview
   sat_overview = f"{plotpath}/sat_overview_apr-sep.png"
+  # sat_overview = f"{plotpath}/sat_overview.png"
   plot_satellite_deployment_overview(years, months, satellites, sat_overview, figsize=(20, 6))
 
-  # plot occurence per month and satellite
+  # plot occurence per month
   overpasses_month = f"{plotpath}/overpasses_per_month_apr-sep.png"
+  # overpasses_month = f"{plotpath}/overpasses_per_month.png"
   plot_occurences_per_month(years, months, satellites, overpasses_month, figsize=(25, 6))
 
-  # plot occurence per year and satellite
+  # plot occurence per month and satellite
+  overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat_apr-sep.png"
+  # overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat.png"
+  plot_occurences_per_month_and_satellite(years, months, satellites, overpasses_sat_month, figsize=(20, 15))
+
+  # plot occurence per year
   overpasses_year = f"{plotpath}/overpasses_per_year_apr-sep.png"
+  # overpasses_year = f"{plotpath}/overpasses_per_year.png"
   plot_occurences_per_year(years, satellites, overpasses_year, figsize=(13, 6))
 
 def count_occurences(path, years, months):
@@ -92,7 +102,7 @@ def plot_satellite_deployment_overview(years, months, satellites, output_name, f
                       color=satellites[sat]['color'])
   # set major ticks
   ax.xaxis.set_major_locator(MultipleLocator(n_months))
-  ax.set_xticklabels(years)
+  ax.set_xticklabels(np.append("", years))  # locators start at -n_months so we need to add an aditional label
 
   # set minor ticks
   ax.xaxis.set_minor_locator(MultipleLocator(1))
@@ -111,7 +121,7 @@ def plot_satellite_deployment_overview(years, months, satellites, output_name, f
                     mpatches.Patch(color='r', label='SSMIS'), 
                     mpatches.Patch(color='orange', label='GMI')]
   ax.legend(handles=legend_patches, 
-            loc='upper center', bbox_to_anchor=(0.5, 1.08),
+            loc='upper left', bbox_to_anchor=(0.05, 1.08),
             fancybox=True, shadow=True, ncol=5)
 
   plt.savefig(output_name, bbox_inches='tight')
@@ -135,7 +145,7 @@ def plot_occurences_per_month(years, months, satellites, output_name, figsize=(2
 
   # set major ticks
   ax.xaxis.set_major_locator(MultipleLocator(n_months))
-  ax.set_xticklabels(years)
+  ax.set_xticklabels(np.append("", years))  # locators start at -n_months so we need to add an aditional label
 
   # set minor ticks
   ax.xaxis.set_minor_locator(MultipleLocator(1))
@@ -155,12 +165,11 @@ def plot_occurences_per_month(years, months, satellites, output_name, figsize=(2
                     mpatches.Patch(color='r', label='SSMIS'), 
                     mpatches.Patch(color='orange', label='GMI')]
   ax.legend(handles=legend_patches, 
-            loc='upper center', bbox_to_anchor=(0.5, 1.08),
+            loc='upper left', bbox_to_anchor=(0.05, 1.08),
             fancybox=True, shadow=True, ncol=5)
 
   plt.savefig(output_name, bbox_inches='tight')
   plt.close()
-
 
 def plot_occurences_per_month_and_satellite(years, months, satellites, output_name, figsize=(20, 10)):
   n_months = len(months)
@@ -173,29 +182,39 @@ def plot_occurences_per_month_and_satellite(years, months, satellites, output_na
   f.set_figwidth(figsize[0])
 
   for s, sat in enumerate(satellites):
-      ax = axes[s]
-      n_files = satellites[sat]['n_files'].flatten()
-      p = ax.bar(x_month, n_files, 0.8, color=satellites[sat]['color'], bottom=bottom, align="edge")
-      bottom += n_files
-  ax.yaxis.tick_right()
-  ax.yaxis.set_label_position("right")
+    ax = axes[-(s+1)]
+    n_files = satellites[sat]['n_files'].flatten()
+    p = ax.bar(x_month, n_files, 0.8, color=satellites[sat]['color'], align="edge")
 
+    # write satellite in top left corner
+    ax.text(.01, .9, sat, ha='left', va='top', transform=ax.transAxes)
 
-  # set major ticks
-  ax.xaxis.set_major_locator(MultipleLocator(n_months))
-  ax.set_xticklabels(years)
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
 
-  # set minor ticks
-  ax.xaxis.set_minor_locator(MultipleLocator(1))
-  ax.xaxis.set_tick_params(which='minor', grid_linestyle='--')
+    # set major ticks
+    ax.xaxis.set_major_locator(MultipleLocator(n_months))
+    if s == 0:
+      # somehow the locations of the ticks start at -6, 
+      # so the first year is not written within plotting range starting from 0
+      # this is why we add another label at the beginning
+      ax.set_xticklabels(np.append("", years))
+    else:
+      ax.set_xticklabels("")
 
-  # Turn off y-axis minor ticks
-  ax.yaxis.set_tick_params(which='minor', right=False)
-  ax.set_ylabel("number of files")
+    # set minor ticks
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    ax.xaxis.set_tick_params(which='minor', grid_linestyle='--')
 
-  # set limits and grid
-  ax.set_xlim(0, len(x_month))
-  ax.grid(axis='x', which="both")
+    # Turn off y-axis minor ticks
+    ax.yaxis.set_tick_params(which='minor', right=False)
+    if s == len(axes)/2:
+       ax.set_ylabel("number of files")
+
+    # set limits and grid
+    ax.set_xlim(0, len(x_month))
+    ax.set_ylim(0, 200)
+    ax.grid(which="both")
 
   # Put a legend below current axis
   legend_patches = [mpatches.Patch(color='g', label='MHS'), 
@@ -203,7 +222,7 @@ def plot_occurences_per_month_and_satellite(years, months, satellites, output_na
                     mpatches.Patch(color='r', label='SSMIS'), 
                     mpatches.Patch(color='orange', label='GMI')]
   ax.legend(handles=legend_patches, 
-            loc='upper center', bbox_to_anchor=(0.5, 1.08),
+            loc='upper left', bbox_to_anchor=(0.05, 1.08),
             fancybox=True, shadow=True, ncol=5)
 
   plt.savefig(output_name, bbox_inches='tight')
@@ -235,7 +254,7 @@ def plot_occurences_per_year(years, satellites, output_name, figsize=(13, 6)):
                     mpatches.Patch(color='r', label='SSMIS'), 
                     mpatches.Patch(color='orange', label='GMI')]
   ax.legend(handles=legend_patches, 
-            loc='upper center', bbox_to_anchor=(0.5, 1.08),
+            loc='upper left', bbox_to_anchor=(0.05, 1.08),
             fancybox=True, shadow=True, ncol=5)
 
   plt.savefig(output_name, bbox_inches='tight')
