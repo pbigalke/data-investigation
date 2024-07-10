@@ -7,30 +7,16 @@ sys.path.append("..")
 # import my own script
 import readers.read_MWCC_H as mwcc
 
-# %%
-path = "/net/merisi/pbigalke/data/MWCC-H"
-years = [2022]
-months = [6]
-days = [5]
-detectors = ["ATMS", "MHS", "SSMIS"]
-all_files = mwcc.get_mwcch_files_in_study_period(path, detectors, years, months, days)
-
-print(len(all_files))
-count = 0
-
-# define domain
-domain = {"minlon":5., "maxlon":16., "minlat":42., "maxlat":51.5}
-for f in all_files:
-
+def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path):
+    
     # read in data file
-    data = mwcc.read_mwcch_file(f, domain=domain)
+    data = mwcc.read_mwcch_file(mwcch_file, domain=domain)
 
     if len(data) > 0:
         print('-----------------------------------------------------')
-        print(f)
-        base_path = "/".join(f.split('/')[:-3] + ["netcdf"])
-        detector = f.split('/')[-2]
-        year, month, day = mwcc.get_y_m_d_from_mwcch_filepath(f)
+        print(mwcch_file)
+        detector = mwcch_file.split('/')[-2]
+        year, month, day = mwcc.get_y_m_d_from_mwcch_filepath(mwcch_file)
         print(year, month, day)
 
         count += 1
@@ -42,13 +28,35 @@ for f in all_files:
         end_time = f"E{int(np.max(data["hour"])):02}{int(np.max(data["min"])):02}"
         
         # define netcdf file name
-        file_path = f"{base_path}/{year:04}/{month:02}/{day:02}"
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-        file_name = f"{file_path}/{date_string}_{start_time}_{end_time}_{detector}.nc"
-        print(file_name)
-        data_xr = xr.Dataset.from_dataframe(data)
-        data_xr.to_netcdf(file_name)
+        netcdf_path = f"{output_path}/{year:04}/{month:02}/{day:02}"
+        if not os.path.exists(netcdf_path):
+            os.makedirs(netcdf_path)
+        netcdf_file = f"{netcdf_path}/{date_string}_{start_time}_{end_time}_{detector}.nc"
 
-print(count)
+        # save as netcdf file
+        data_xr = xr.Dataset.from_dataframe(data)
+        data_xr.to_netcdf(netcdf_file)
+
 # %%
+def main():
+    path = "/net/merisi/pbigalke/data/MWCC-H/MWCC-H"
+    output_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    years = [2022]
+    months = [6]
+    days = [5]
+    detectors = ["ATMS", "MHS", "SSMIS"]
+    all_files = mwcc.get_mwcch_files_in_study_period(path, detectors, years, months, days)
+
+    print(len(all_files))
+    count = 0
+
+    # define domain
+    domain = {"minlon":5., "maxlon":16., "minlat":42., "maxlat":51.5}
+    for f in all_files:
+        save_mwcch_over_domain_as_netcdf(f, domain, output_path)
+        count += 1
+
+    print(count)
+# %%
+if __name__ == "__main__":
+    main()

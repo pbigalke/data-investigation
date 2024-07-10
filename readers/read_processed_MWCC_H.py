@@ -44,7 +44,7 @@ def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=No
 
     return mwcch_files
 
-def get_mwcch_file_at_msg_timestamp(mwcch_directory, detectors, timestamp):
+def get_mwcch_file_at_msg_timestamp(mwcch_directory, detectors, timestamp, msg_res=15):
 
     dt = hlp.get_datestring_from_npdatetime(timestamp)
 
@@ -53,10 +53,14 @@ def get_mwcch_file_at_msg_timestamp(mwcch_directory, detectors, timestamp):
         
         if f.split('_')[-1].split('.')[0] in detectors:
             start_msg = int(dt[-4:])
-            end_msg = start_msg + 55 if int(dt[-2:]) == 45 else start_msg + 15
-            end_mwcch = int(f.split('_')[-2][1:]) 
-
-            if start_msg < end_mwcch and end_mwcch < end_msg:
+            end_msg = start_msg + msg_res if (int(dt[-2:])+msg_res) < 60 else start_msg + (40+msg_res)
+            start_mwcch = int(f.split('_')[-3][1:])
+            end_mwcch = int(f.split('_')[-2][1:])
+            if start_msg < start_mwcch and start_mwcch < end_msg \
+                or start_msg < end_mwcch and end_mwcch < end_msg:
+                print("msg start, end ", start_msg, end_msg)
+                print("mwcch start, end ", start_mwcch, end_mwcch) 
+                print()
                 mwcch_files.append(f)
 
     return mwcch_files

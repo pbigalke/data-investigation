@@ -217,18 +217,28 @@ def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb, mwcc_lons=None, mwcc_lats=No
     # save to file
     if path_out is not None:
         plt.savefig(path_out, bbox_inches='tight', transparent=transparent)
+        plt.close()
         print('file saved')
-    plt.show()
-    plt.close()
+    else:
+        plt.show()
+        plt.close()
 
 # %%
 if __name__ == '__main__':
     
     mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-    msg_path = "/data/sat/msg/netcdf/parallax"
+    msg_path = "/data/sat/msg/rapid_scan/netcdf/noparallax"
+    # msg_path = "/data/sat/msg/netcdf/parallax"
+
+    #output_path = "/net/merisi/pbigalke/plots/data_investigation/case_study_20220605/MSG_MWCCH/expats_domain"
+    output_path = "/net/merisi/pbigalke/plots/data_investigation/case_study_20220605/MSG_MWCCH_rapidscan/min200_max280"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
     years = [2022]
     months = [6]
     days = [5]
+    msg_res = 5
     detectors = ["ATMS", "MHS", "SSMIS"]
     #all_mwcch_files = mwcc.get_mwcch_files_in_study_period(mwcch_path, detectors, years, months, days)
     all_msg_files = msg.get_MSG_files_in_study_period(msg_path, years, months, days)
@@ -252,16 +262,17 @@ if __name__ == '__main__':
         data_msg = msg.read(f)
 
         # get range of values
-        min_val = np.nanmin(data_msg[f"{channel}"].values)
-        max_val = np.nanmax(data_msg[f"{channel}"].values)
+        min_val = 200  # np.nanmin(data_msg[f"{channel}"].values)
+        max_val = 280  # np.nanmax(data_msg[f"{channel}"].values)
 
         # loop over timestamps
         for timestamp in data_msg.time.values:
+            print(timestamp)
             dt = hlp.get_datestring_from_npdatetime(timestamp)
 
             # check if mwcch file is in this timestamp
-            mwcc_files = mwcc.get_mwcch_file_at_msg_timestamp(mwcch_path, detectors, timestamp)
-
+            mwcc_files = mwcc.get_mwcch_file_at_msg_timestamp(mwcch_path, detectors, timestamp, msg_res=msg_res)
+    
             # read data from MWCC-H file if there is any
             data_mwcc = mwcc.read(mwcc_files[0]) if len(mwcc_files) > 0 else None
             mwcc_lons = data_mwcc.lon.values if len(mwcc_files) > 0 else None
@@ -274,15 +285,12 @@ if __name__ == '__main__':
             msg_tb = data_msg.sel(time=timestamp).IR_108.values
 
             # define output location and file name
-            output_path = "/net/merisi/pbigalke/plots/data_investigation/case_study_20220605/MSG_MWCCH/german_domain"
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
-            out_name = f'{dt}_msg_{channel}_poh.png'
+            out_name = f'{dt}_msg_{channel}_poh_min{min_val}_max{max_val}.png'
 
             # plot msg and poh
-            title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]} : MSG - {channel}'
+            title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
             plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb, mwcc_lons=mwcc_lons, mwcc_lats=mwcc_lats, mwcc_poh=mwcc_poh, 
-                                channelname=channel, vmin=min_val, vmax=max_val, extent=extent, transparent=False, 
+                                channelname=channel, vmin=min_val, vmax=max_val, extent=extent, transparent=True, 
                                 title=title, path_out=os.path.join(output_path, out_name))
 
 
