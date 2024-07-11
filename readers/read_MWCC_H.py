@@ -22,10 +22,10 @@ def _crop_over_domain(data, domain):
         MWCC-H output cropped over domain
     """
     # select only our domain
-    mask_out_of_bounds = (data.lon < domain["minlon"]) | (data.lon > domain["maxlon"]) | \
-                (data.lat < domain["minlat"]) | (data.lat > domain["maxlat"])
+    mask_out_of_bounds = (data.lon < domain[0]) | (data.lon > domain[1]) | \
+                (data.lat < domain[2]) | (data.lat > domain[3])
     index_out_of_bounds = data[mask_out_of_bounds].index
-    data.drop(index_out_of_bounds , inplace=True)
+    data.drop(index_out_of_bounds, inplace=True)
     return data
     
 
@@ -55,7 +55,7 @@ def _get_column_names(detector):
         return ['year', 'month', 'day', 'hour', 'min', 'sec', 'lat', 'lon', 'cloud_type', 'tb_150', 'POH']
 
 
-def read_mwcch_file(file_path, domain=None):
+def read_mwcch_file_old(file_path, domain=None):
     """ read MWCC-H output containing probability of hail into dataframe
 
     Parameters
@@ -81,7 +81,7 @@ def read_mwcch_file(file_path, domain=None):
     df = df_raw[0].str.split(expand=True).astype(float)
 
     # add the names of columns
-    df.columns = _get_column_names(detector)
+    df.columns = _get_column_names()
 
     if domain is not None:
         # select only over given domain
@@ -91,6 +91,43 @@ def read_mwcch_file(file_path, domain=None):
     #df.insert(loc = 0,
     #         column = 'datetime',
     #         value =  df.apply(lambda x : datetime(int(x['year']), int(x['month']), int(x['day']), int(x['hour']), int(x['min']), int(x['sec'])), axis=1))
+    return df
+
+def read_mwcch_file(file_path, domain=None):
+    """ read MWCC-H output containing probability of hail into dataframe
+
+    Parameters
+    ----------
+    filename : string or path
+        path to file
+    domain : dict, optional
+        if not None data is cropped to this domain,
+        containing "minlon", "maxlon", "minlat", "maxlat", by default None
+
+    Returns
+    -------
+    pandas dataframe
+        MWCC-H output (cropped) as dataframe with column names
+    """
+    # read file
+    df_raw = pd.read_csv(file_path, sep='\t', header=None)
+
+    # rearrange the data into proper dataframe
+    df = df_raw[0].str.split(expand=True).astype(float)
+    
+    # add the names of columns
+    df.columns = ['year', 'month', 'day', 'hour', 'minute', 'second', 'lat', 'lon', 'cloud_type', 'TB', 'POH']
+
+    if domain is not None:
+        # select only over given domain
+        df = _crop_over_domain(df, domain)
+
+    # add another column containing datetime
+    df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour', 'minute', 'second']])
+
+    # sort new and leave out unnecessary date and time columns
+    df = df[ ['datetime'] + ['lat'] + ['lon'] + ['cloud_type'] + ['TB'] + ['POH'] ]
+    
     return df
 
 def get_y_m_d_from_mwcch_filepath(file_path):
@@ -109,6 +146,16 @@ def get_y_m_d_from_mwcch_filepath(file_path):
 
     return year, month, day
 
+def get_satellite_from_mwcch_filepath(file_path):
+    satellites = ['meto01', 'meto02', 'meto03', 'noaa15', 'noaa16', 'noaa17', 'noaa18', 'noaa19', 
+                  'n20', 'n21', 'npp', 'f16', 'f17', 'gpm']
+    for sat in satellites:
+        if sat in file_path.lower():
+            return sat
+    return None
+
+def get_detector_from_mwcch_filepath(file_path):
+    return file_path.split('/')[-2]
 
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
     
@@ -142,22 +189,16 @@ def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=No
 if __name__ == '__main__':
     import numpy as np
     # test on exaple file
-    example_file = "mhs_METOPB_20230724-S1905-E2046_056289"
-    satellite = 'METOPB'
-    
-    path = "/net/merisi/pbigalke/data/MWCC-H"
-    years = [2022]
-    months = [6]
-    days = [5]
-    detectors = ["ATMS", "MHS", "SSMIS"]
-    all_files = get_mwcch_files_in_study_period(path, detectors, years, months, days)
-    print(len(all_files))
-    # define domain
+    example_files = ["/net/merisi/pbigalke/data/MWCC-H/H2MED_data/2023/ATMS/atms_20231003-S1123-E1305_npp_061830.asc.gz", 
+                     "/net/merisi/pbigalke/data/MWCC-H/H2MED_data/2023/GMI/gmi_20230731-S2032-E2205_gpm_053535.asc.gz",
+                     "/net/merisi/pbigalke/data/MWCC-H/H2MED_data/2023/MHS/BT_rain_proxy_202309041856_noaa19_75119.asc.gz",
+                     "/net/merisi/pbigalke/data/MWCC-H/H2MED_data/2023/SSMIS/ssmis_20230910-S0241-E0423_f17_086947.asc.gz"]
+
     domain = {"minlon":5., "maxlon":16., "minlat":42., "maxlat":51.5}
-    for f in all_files:
+    for f in example_files:
         print('-----------------------------------------------------')
         print(f)
         data = read_mwcch_file(f, domain=domain)
-        if np.sum(data.hail_probability) > 0:
-            print(data)
+        print(data)
+
 # %%
