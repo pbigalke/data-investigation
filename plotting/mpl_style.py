@@ -14,6 +14,7 @@ CMAP_discr = cmc.batlowW
 CMAP_MSG_GREY = mpl.cm.Greys
 CMAP_MSG_COLOR = mpl.cm.YlGnBu
 CMAP_RADAR_COLOR = mpl.cm.BuPu_r
+CMAP_SSMIS_COLOR = mpl.cm.inferno
 
 # common transform
 TRANSFORM = ccrs.PlateCarree()

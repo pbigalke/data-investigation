@@ -7,8 +7,8 @@ from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 
 def main():
-  datapath = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new"
+  datapath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
   if not os.path.exists(plotpath):
      os.makedirs(plotpath)
   years = np.arange(1999, 2024, 1)
@@ -17,30 +17,31 @@ def main():
   # months = np.arange(1, 13, 1)
 
   # count number of files per year, month and satellite
-  satellites, total_n_files = count_occurences(datapath, years, months)
+  satellites, total_n_files = count_occurences(datapath, years, months, format="nc")
+  print(satellites, total_n_files)
+  return
 
   # plot satellite deployment overview
-  sat_overview = f"{plotpath}/sat_overview_apr-sep.png"
+  sat_overview = f"{plotpath}/sat_overview_apr-sep_expatsdomain.png"
   # sat_overview = f"{plotpath}/sat_overview.png"
   plot_satellite_deployment_overview(years, months, satellites, sat_overview, figsize=(20, 6))
 
   # plot occurence per month
-  overpasses_month = f"{plotpath}/overpasses_per_month_apr-sep.png"
+  overpasses_month = f"{plotpath}/overpasses_per_month_apr-sep_expatsdomain.png"
   # overpasses_month = f"{plotpath}/overpasses_per_month.png"
   plot_occurences_per_month(years, months, satellites, overpasses_month, figsize=(25, 6))
 
   # plot occurence per month and satellite
-  overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat_apr-sep.png"
+  overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat_apr-sep_expatsdomain.png"
   # overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat.png"
   plot_occurences_per_month_and_satellite(years, months, satellites, overpasses_sat_month, figsize=(20, 15))
 
   # plot occurence per year
-  overpasses_year = f"{plotpath}/overpasses_per_year_apr-sep.png"
+  overpasses_year = f"{plotpath}/overpasses_per_year_apr-sep_expatsdomain.png"
   # overpasses_year = f"{plotpath}/overpasses_per_year.png"
   plot_occurences_per_year(years, satellites, overpasses_year, figsize=(13, 6))
 
-def count_occurences(path, years, months):
-
+def create_satellite_counter(years, months):
   satellites = {# MHS
                 'meto01': {'n_files': np.zeros((len(years), len(months))), 'color': 'g', 'instrument': 'MHS'},
                 'meto02': {'n_files': np.zeros((len(years), len(months))), 'color': 'g', 'instrument': 'MHS'}, 
@@ -59,7 +60,30 @@ def count_occurences(path, years, months):
                 'f17': {'n_files': np.zeros((len(years), len(months))), 'color': 'r', 'instrument': 'SSMIS'},
               # GMI
                 'gpm': {'n_files': np.zeros((len(years), len(months))), 'color': 'orange', 'instrument': 'GMI'}}
+  return satellites
 
+def count_occurrences_expats_domain(path, years, months):
+
+  satellites = create_satellite_counter(years, month)
+  total_n_files =  np.zeros((len(years), len(months)))
+
+  for y, year in enumerate(years):
+    for m, months in enumerate(months):
+      
+      path_month = f"{path}/{year}/{month}"
+      files = glob.glob(f"{path_instr}/*.asc.gz")
+
+      if len(files) > 0:
+        for f in files:
+          if sat in f.lower():
+              satellites[sat]['n_files'][y, m] += 1
+              total_n_files[y, m] += 1
+
+  return satellites, total_n_files
+
+def count_occurrences_mediterrean_basin(path, years, months):
+
+  satellites = create_satellite_counter()
   total_n_files =  np.zeros((len(years), len(months)))
 
   for y, year in enumerate(years):
@@ -69,6 +93,7 @@ def count_occurences(path, years, months):
           path_instr = f"{path}/{year}/{satellites[sat]['instrument']}"
 
           files = glob.glob(f"{path_instr}/*.asc.gz")
+          print(files)
           if len(files) > 0:
                   
               for m, month in enumerate(months):

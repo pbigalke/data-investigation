@@ -1,6 +1,11 @@
 # %%
 import glob
 import xarray as xr
+import sys
+from datetime import datetime
+sys.path.append("..")
+# import my own script
+import helpers.helper_conversions as hlp
 
 # %%
 def get_MSG_files_in_study_period(msg_directory, years, months, days):
@@ -26,9 +31,11 @@ def read(msg_file):
     with xr.open_dataset(msg_file) as dataset:
             return dataset
 
-path = "/data/sat/msg/netcdf/parallax"
-years = [2022]
-months = [6]
-days = [5]
-get_MSG_files_in_study_period(path, years, months, days)
+# %% 
+if __name__ == '__main__':
+    path = "/data/sat/msg/netcdf/parallax"
+    years = [2022]
+    months = [6]
+    days = [5]
+    get_MSG_files_in_study_period(path, years, months, days)
 # %%
