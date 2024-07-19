@@ -1,13 +1,9 @@
 
 # %%
-import pandas as pd
 import xarray as xr
-from datetime import datetime
-import glob
 import sys
 sys.path.append("..")
-
-import helpers.helper_conversions as hlp
+import matching_data.collect_matching_files as clct
 
 # %%
 def read(file_path):
@@ -33,7 +29,7 @@ if __name__ == '__main__':
     months = [6]
     days = [5]
     detectors = ["ATMS", "MHS", "SSMIS"]
-    all_files = get_mwcch_files_in_study_period(path, detectors, years, months, days)
+    all_files = clct.get_mwcch_files_in_study_period(path, detectors, years, months, days)
     for f in all_files:
         print(f)
 

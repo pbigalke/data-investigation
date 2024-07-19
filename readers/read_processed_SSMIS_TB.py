@@ -1,13 +1,9 @@
 # %%
 import xarray as xr
-import numpy as np
-import glob
-import os
 import sys
-from datetime import datetime
 sys.path.append("..")
 # import my own script
-import helpers.helper_conversions as hlp
+import matching_data.collect_matching_files as clct
 
 
 # %%
@@ -53,7 +49,7 @@ if __name__ == '__main__':
     years = [2022]
     months = [6]
     days = [5]
-    all_files = get_files_in_study_period(path, years, months, days)
+    all_files = clct.get_files_in_study_period(path, years, months, days)
     for f in all_files:
         print(f)
         print(read(f))
