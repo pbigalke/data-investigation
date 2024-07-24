@@ -3,13 +3,13 @@ Color constants and matplotlib style definitions
 """
 
 import matplotlib as mpl
-import cmcrameri.cm as cmc
+# import cmcrameri.cm as cmc
 import cartopy.crs as ccrs
 
 # define colormaps
-CMAP = cmc.batlow
-CMAP_an = cmc.vik
-CMAP_discr = cmc.batlowW
+# CMAP = cmc.batlow
+# CMAP_an = cmc.vik
+# CMAP_discr = cmc.batlowW
 
 CMAP_MSG_GREY = mpl.cm.Greys
 CMAP_MSG_COLOR = mpl.cm.YlGnBu

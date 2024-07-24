@@ -10,22 +10,23 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats
-from figures.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
-from figures.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
+from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
+from plotting.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
 
 # %%
 channels = {
             "IR_016": r"NIR 1.6 ${\mu}m$",
             "IR_039": r"IR 3.9 ${\mu}m$",
-            "IR_087": r"IR 8.7 ${\mu}m$",
+            "IR_087": r"IR 8.7 ${\mu}m$", #
             "IR_097": r"IR 9.7 ${\mu}m$",
-            "IR_108": r"IR 10.8 ${\mu}m$",
+            "IR_108": r"IR 10.8 ${\mu}m$", #
             "IR_120": r"IR 12.0 ${\mu}m$",
             "IR_134": r"IR 13.4 ${\mu}m$",
             "VIS006": r"VIS 0.6 ${\mu}m$",
             "VIS008": r"VIS 0.8 ${\mu}m$",
             "WV_062": r"WV 6.2 ${\mu}m$",
             "WV_073": r"WV 7.3 ${\mu}m$",
+            "WV_062-IR_108": r"(6.2 -10.8) ${\mu}m$",
 }
 
 # %%

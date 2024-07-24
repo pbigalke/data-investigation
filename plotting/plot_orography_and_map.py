@@ -11,7 +11,7 @@ import sys
 # read in own methods
 sys.path.append('..')
 from readers.read_orography import read_orography
-from figures.mpl_style import TRANSFORM, plot_cities_expats, TICKSIZE
+from plotting.mpl_style import TRANSFORM, plot_cities_expats, TICKSIZE
 from config.domain_info import domain_expats
 
 # define style for plotting orography
@@ -33,6 +33,12 @@ MAP_DARK = {"borders": True,
             "linewidth": 1, 
             "color": 'black'}
 
+MAP_LIGHT = {"borders": True, 
+            "coastlines": True, 
+            "states": False, 
+            "linewidth": 0.5, 
+            "color": 'yellow'}
+
 # %%
 def draw_orography_filled(ax, cmap=ORO_GREY, alpha=1., transform=TRANSFORM):
     # reading orography data from raster file
@@ -46,10 +52,15 @@ def draw_orography_filled(ax, cmap=ORO_GREY, alpha=1., transform=TRANSFORM):
                         alpha=alpha,
                         cmap=cmap)
 
-def draw_map(ax, extent=domain_expats, style=MAP_DARK, cities=True):
+def draw_map(ax, extent=domain_expats, mode="dark", cities=True):
     
     if cities:
         plot_cities_expats(ax, 'black', 50)
+
+    if mode == "dark":
+        style = MAP_DARK
+    elif mode == "light":
+        style = MAP_LIGHT
 
     # Adds coastlines and borders to the current axes
     if style["borders"]:

@@ -39,7 +39,7 @@ def main():
         count += 1
 
 #%%
-def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path):
+def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path=None):
     
     # read in data file
     data = _read_mwcch_file(mwcch_file, domain=domain)
@@ -61,17 +61,20 @@ def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path):
         start_time = f"S{hlp.get_timestring_from_npdatetime(start_dt)}"
         end_time = f"E{hlp.get_timestring_from_npdatetime(end_dt)}"
         
-        # define netcdf file name
-        netcdf_path = f"{output_path}/{date_string[:4]}/{date_string[4:6]}/{date_string[6:]}"
-        if not os.path.exists(netcdf_path):
-            os.makedirs(netcdf_path)
-        netcdf_file = f"{netcdf_path}/{date_string}_{start_time}_{end_time}_{detector}_{satellite}.nc"
+        if output_path is not None:
+            # define netcdf file name
+            netcdf_path = f"{output_path}/{date_string[:4]}/{date_string[4:6]}/{date_string[6:]}"
+            if not os.path.exists(netcdf_path):
+                os.makedirs(netcdf_path)
+            netcdf_file = f"{netcdf_path}/{date_string}_{start_time}_{end_time}_{detector}_{satellite}.nc"
 
-        # save as netcdf file
-        data_xr = xr.Dataset.from_dataframe(data)
-        data_xr.to_netcdf(netcdf_file)
+            # save as netcdf file
+            data_xr = xr.Dataset.from_dataframe(data)
+            data_xr.to_netcdf(netcdf_file)
+            print(f"saved to {netcdf_file}")
         return True
     return False
+
 
 # %%
 def _crop_over_domain(data, domain):
@@ -253,6 +256,16 @@ def _get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=N
 
 # %%
 if __name__ == "__main__":
-    main()
+    # main()
+    path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
+    outpath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    years = [2022]
+    months = [6]
+    days = [5]
+    detectors = ["ATMS", "MHS", "SSMIS", "GMI"]
+    all_files = _get_mwcch_files_in_study_period(path, detectors, years, months, days)
+    for f in all_files:
+        if save_mwcch_over_domain_as_netcdf(f, domain_expats, output_path=outpath):
+            print(os.path.basename(f))
 
 # %%

@@ -9,8 +9,8 @@ sys.path.append("..")
 import readers.read_MSG as msg
 import helpers.helper_conversions as hlp
 from config.domain_info import domain_DE_CA, domain_expats
-from figures.plot_MSG import channels, plot_MSG_over_map
-from figures.mpl_style import CMAP_MSG_COLOR, CMAP_MSG_GREY
+from plotting.plot_MSG import channels, plot_MSG_over_map
+from plotting.mpl_style import CMAP_MSG_COLOR, CMAP_MSG_GREY
 
 # %%
 def main():

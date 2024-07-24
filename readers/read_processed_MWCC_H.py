@@ -16,6 +16,14 @@ def get_y_m_d_from_filepath(file_path):
     
     return None
 
+def get_sat_from_filepath(file_path):
+    satellites = ['meto01', 'meto02', 'meto03', 'noaa15', 'noaa16', 'noaa17', 'noaa18', 'noaa19', 
+                  'n20', 'n21', 'npp', 'f16', 'f17', 'gpm']
+    for sat in satellites:
+        if sat in file_path.lower():
+            return sat
+    return None
+
 
 # %%
 if __name__ == '__main__':
