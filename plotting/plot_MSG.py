@@ -37,7 +37,12 @@ def draw_msg_colorbar(fig, ax, channelname, cmap=mpl.cm.Greys, vmin=None, vmax=N
     cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
                  cax=ax, orientation=orientation, shrink=0.6)
 
-    label = 'reflectance' if 'VIS' in channelname else 'brightness temperature [K]'
+    if "-" in channelname:
+        label = f"diff {channelname}"
+    elif "VIS" in channelname:
+        label = f"{channelname} reflectance"
+    else:
+        label = f'{channelname} Tb [K]'
     cbar.set_label(label, fontsize=LABELSIZE)
     cbar.ax.tick_params(labelsize=TICKSIZE)
     ax.yaxis.set_ticks_position(tick_position)
