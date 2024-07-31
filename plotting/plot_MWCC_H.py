@@ -84,6 +84,53 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, alpha=1.0, projection=TRANSFO
     ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
     ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
+def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, mark_points=None, 
+                        projection=TRANSFORM, transform=TRANSFORM, 
+                        transparent=True, title=None, path_out=None):
+    """ plot probability of hail contour over MSG radiances
+
+    Parameters
+    ----------
+   
+    """
+    # create figure mit cartopy axis of certain projection
+    #fig = plt.figure(figsize=(7,5))
+
+    fig = plt.figure(figsize=(6, 5)) #, layout="constrained")
+
+    # devide figure in axes for colorbars and plot
+    gs = GridSpec(3, 2, figure=fig, width_ratios=[0.95, 0.05], height_ratios=[0.1, 0.8, 0.1])
+    ax_plot = fig.add_subplot(gs[:, 0], projection=projection)
+    ax_cbar = fig.add_subplot(gs[1, 1])
+    
+    # draw map
+    draw_map(ax_plot, mode="dark", extent=domain, cities=False)
+
+    # draw grid    
+    draw_grid(ax_plot)
+
+    # plot hail probability if not None
+    plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, projection=projection)
+
+    # draw MWCC-H colorbar
+    draw_mwcch_colorbar(fig, ax_cbar, orientation='vertical')
+
+    # if points are given mark as crosses
+    if isinstance(mark_points, list):
+        ax_plot.scatter(mark_points[0], mark_points[1], marker="x", color="r")
+    
+    # set title
+    if title is not None:
+         ax_plot.set_title(title, fontsize=LABELSIZE)
+    
+    # save to file
+    if path_out is not None:
+        plt.savefig(path_out, bbox_inches='tight', transparent=transparent)
+        plt.close()
+    else:
+        plt.show()
+        plt.close()
+
 def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=None, mwcc_lats=None, mwcc_poh=None, 
                         cmap=mpl.cm.Greys, vmin=None, vmax=None, alpha_mwcch=1.0, alpha_msg=1.0, clear_sky_thresh=None, draw_oro=False,
                         domain=domain_expats, projection=TRANSFORM, transform=TRANSFORM, 
