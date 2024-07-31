@@ -13,7 +13,7 @@ sys.path.append("..")
 from config.domain_info import domain_expats
 import readers.read_processed_MWCC_H as mwcc
 import readers.read_MSG as msg
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 import matching_data.collect_matching_files as fls
 import plotting.plot_MWCC_H as mwcc_plt
 from plotting.mpl_style import CMAP_MSG_GREY

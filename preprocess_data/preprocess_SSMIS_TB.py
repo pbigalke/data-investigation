@@ -7,7 +7,7 @@ import sys
 sys.path.append("..")
 # import my own script
 from config.domain_info import domain_expats
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 from readers.read_processed_SSMIS_TB import channel_info, _get_scenes
 
 # %%

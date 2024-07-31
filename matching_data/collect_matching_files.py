@@ -3,7 +3,7 @@ import os
 import numpy as np
 import sys
 sys.path.append("..")
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
     

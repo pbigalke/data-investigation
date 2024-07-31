@@ -12,7 +12,7 @@ sys.path.append("..")
 # import my own script
 import readers.read_MSG as msg
 import readers.read_radar_DWD as rad
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 from config.domain_info import domain_DE_CA
 import figures.plot_orography_and_map as plt_map
 import figures.plot_MSG as plt_msg

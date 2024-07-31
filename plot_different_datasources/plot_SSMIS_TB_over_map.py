@@ -8,7 +8,7 @@ import sys
 sys.path.append("..")
 # import my own script
 import readers.read_processed_SSMIS_TB as ssmis
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 from config.domain_info import domain_expats
 from figures.plot_SSMIS_TB import plot_SSMIS_over_map
 from figures.mpl_style import CMAP_SSMIS_COLOR

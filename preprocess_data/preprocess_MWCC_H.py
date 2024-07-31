@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 sys.path.append("..")
 # import my own script
-import helpers.helper_conversions as hlp
+import helpers.datetime_helper as hlp
 from config.domain_info import domain_expats
 
 # %%
