@@ -1,6 +1,7 @@
 
 # %%
 import xarray as xr
+import numpy as np
 import sys
 sys.path.append("..")
 import matching_data.collect_matching_files as clct
@@ -9,8 +10,7 @@ import matching_data.collect_matching_files as clct
 def read(file_path):
     """ read processed MWCC-H output containing probability of hail
     """
-    with xr.open_dataset(file_path) as dataset:
-        return dataset
+    return xr.open_dataset(file_path)
 
 def get_y_m_d_from_filepath(file_path):
     
@@ -24,6 +24,15 @@ def get_sat_from_filepath(file_path):
             return sat
     return None
 
+def get_hail_class(poh):
+    hail_classes = ["no_hail", 
+                    "hail_potential", 
+                    "hail_initiation_graupel", 
+                    "large_hail", 
+                    "super_hail"]
+    boundaries = [0, 0.2, 0.36, 0.45, 0.6, 1.01]
+    idx = np.searchsorted(boundaries, poh, side='right') - 1
+    return np.take(hail_classes, idx)
 
 # %%
 if __name__ == '__main__':

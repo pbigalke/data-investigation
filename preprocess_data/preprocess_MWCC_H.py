@@ -7,6 +7,7 @@ import sys
 sys.path.append("..")
 # import my own script
 import helpers.datetime_helper as hlp
+import readers.read_processed_MWCC_H as mwcch
 from config.domain_info import domain_expats
 
 # %%
@@ -39,6 +40,12 @@ def main():
         count += 1
 
 #%%
+def add_hail_class_to_netcdf(mwcch_file):
+    
+    mwcch_data = mwcch.read(mwcch_file)
+    mwcch_data['hail_class'] = ('index', mwcch.get_hail_class(mwcch_data.POH.values))
+    mwcch_data.to_netcdf(mwcch_file, mode='a')
+
 def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path=None):
     
     # read in data file
