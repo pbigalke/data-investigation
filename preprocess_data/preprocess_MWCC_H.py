@@ -39,12 +39,34 @@ def main():
 
         count += 1
 
+def main_add_hail_class():
+    output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
+
+    # read all files in directory
+    all_files = sorted(glob.glob(f"{output_path}/*/*/*/*.nc"))
+    print(len(all_files), flush=True)
+
+    count = 0
+    # loop over files
+    for f, fl in enumerate(all_files):
+
+        # print status every few files
+        if f % 1000 == 0:
+            print(f"{count}/{len(all_files)}", flush=True)
+
+        # add hail class to all data files
+        add_hail_class_to_netcdf(fl)
+
+        count += 1
+
+
 #%%
 def add_hail_class_to_netcdf(mwcch_file):
     
-    mwcch_data = mwcch.read(mwcch_file)
+    with xr.open_dataset(mwcch_file) as ds:
+        mwcch_data = ds.load()
     mwcch_data['hail_class'] = ('index', mwcch.get_hail_class(mwcch_data.POH.values))
-    mwcch_data.to_netcdf(mwcch_file, mode='a')
+    mwcch_data.to_netcdf(mwcch_file)
 
 def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path=None):
     
@@ -264,15 +286,16 @@ def _get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=N
 # %%
 if __name__ == "__main__":
     # main()
-    path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
-    outpath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-    years = [2022]
-    months = [6]
-    days = [5]
-    detectors = ["ATMS", "MHS", "SSMIS", "GMI"]
-    all_files = _get_mwcch_files_in_study_period(path, detectors, years, months, days)
-    for f in all_files:
-        if save_mwcch_over_domain_as_netcdf(f, domain_expats, output_path=outpath):
-            print(os.path.basename(f))
+    main_add_hail_class()
+    # path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
+    # outpath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    # years = [2022]
+    # months = [6]
+    # days = [5]
+    # detectors = ["ATMS", "MHS", "SSMIS", "GMI"]
+    # all_files = _get_mwcch_files_in_study_period(path, detectors, years, months, days)
+    # for f in all_files:
+    #     if save_mwcch_over_domain_as_netcdf(f, domain_expats, output_path=outpath):
+    #         print(os.path.basename(f))
 
 # %%
