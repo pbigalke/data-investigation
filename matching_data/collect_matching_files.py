@@ -56,7 +56,7 @@ def get_files_in_study_period(directory, years, months=None, days=None):
             for day in days:
                 path_day = f"{directory}/{year}/{month:02}/{day:02}"
                 if os.path.exists(path_day):
-                    for f in glob.glob(f"{path_day}/*.nc"):
+                    for f in sorted(glob.glob(f"{path_day}/*.nc")):
                         all_files.append(f)
 
     return all_files

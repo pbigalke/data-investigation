@@ -19,24 +19,6 @@ import plotting.plot_MWCC_H as mwcc_plt
 from plotting.mpl_style import CMAP_MSG_GREY
 
 # %%
-# sample the colormaps that you want to use. Use 128 from each so we get 256
-# colors in total
-def create_combined_colormap(vmin, center, vmax, diverg_cmap=mpl.cm.seismic):
-    print(vmin, center, vmax)
-    # get number of colors above and below center point representing the respective range percentages
-    n_pos = int(265*(vmax-center)/(vmax-vmin))
-    n_neg = int(265*(center-vmin)/(vmax-vmin))
-    print(n_pos, n_neg)
-
-    # sample colors
-    colors_pos = diverg_cmap(np.linspace(0.7, 1, n_pos))
-    colors_neg = diverg_cmap(np.linspace(0, 0.5, n_neg))
-
-    # combine them and build a new colormap
-    colors = np.vstack((colors_neg, colors_pos))
-    return mpl.colors.LinearSegmentedColormap.from_list('recentered_cmap', colors)
-
-# %%
 
 def main():
 
@@ -89,12 +71,6 @@ def main():
             min_val = np.nanpercentile(msg_tb.values, 1) # np.nanmin(msg_tb.values)
             max_val = np.nanpercentile(msg_tb.values, 99) # np.nanmax(msg_tb.values)
 
-            # set colormap according to channel
-            if "-" in channel:
-                cmap = create_combined_colormap(min_val, 0, max_val, diverg_cmap=mpl.cm.seismic)
-            else:
-                cmap = CMAP_MSG_GREY
-
             # loop over timestamps
             for timestamp in data_msg.time.values:
                 dt = hlp.get_datetimestring_from_npdatetime(timestamp)
@@ -119,7 +95,7 @@ def main():
                 title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
                 mwcc_plt.plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb_t, channel, 
                                             mwcc_lons=mwcc_lons, mwcc_lats=mwcc_lats, mwcc_poh=mwcc_poh, 
-                                            cmap=cmap, vmin=min_val, vmax=max_val, alpha_mwcch=0.6, 
+                                            vmin=min_val, vmax=max_val, alpha_mwcch=0.6, 
                                             domain=domain, title=title, path_out=out_name)
     
 # %%

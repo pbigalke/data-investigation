@@ -1,153 +1,75 @@
-
-Nohup runnning with job 1602934
-
-0/149311: 0 files within domain
-1000/149311: 383 files within domain
-2000/149311: 761 files within domain
-3000/149311: 1084 files within domain
-4000/149311: 1444 files within domain
-5000/149311: 1817 files within domain
-6000/149311: 2213 files within domain
-7000/149311: 2519 files within domain
-8000/149311: 2857 files within domain
-9000/149311: 3214 files within domain
-10000/149311: 3526 files within domain
-11000/149311: 3935 files within domain
-12000/149311: 4277 files within domain
-13000/149311: 4658 files within domain
-14000/149311: 5009 files within domain
-15000/149311: 5335 files within domain
-16000/149311: 5729 files within domain
-17000/149311: 6038 files within domain
-18000/149311: 6550 files within domain
-19000/149311: 6965 files within domain
-20000/149311: 7368 files within domain
-21000/149311: 7727 files within domain
-22000/149311: 8022 files within domain
-23000/149311: 8483 files within domain
-24000/149311: 8998 files within domain
-25000/149311: 9379 files within domain
-26000/149311: 9734 files within domain
-27000/149311: 10075 files within domain
-28000/149311: 10434 files within domain
-29000/149311: 10967 files within domain
-30000/149311: 11513 files within domain
-31000/149311: 11981 files within domain
-32000/149311: 12389 files within domain
-33000/149311: 12785 files within domain
-34000/149311: 13086 files within domain
-35000/149311: 13424 files within domain
-36000/149311: 13874 files within domain
-37000/149311: 14408 files within domain
-38000/149311: 14951 files within domain
-39000/149311: 15386 files within domain
-40000/149311: 15726 files within domain
-41000/149311: 16078 files within domain
-42000/149311: 16578 files within domain
-43000/149311: 17119 files within domain
-44000/149311: 17659 files within domain
-45000/149311: 18019 files within domain
-46000/149311: 18413 files within domain
-47000/149311: 18766 files within domain
-48000/149311: 19310 files within domain
-49000/149311: 19844 files within domain
-50000/149311: 20325 files within domain
-51000/149311: 20743 files within domain
-52000/149311: 21119 files within domain
-53000/149311: 21501 files within domain
-54000/149311: 22038 files within domain
-55000/149311: 22577 files within domain
-56000/149311: 23070 files within domain
-57000/149311: 23496 files within domain
-58000/149311: 23908 files within domain
-59000/149311: 24248 files within domain
-60000/149311: 24648 files within domain
-61000/149311: 25187 files within domain
-62000/149311: 25724 files within domain
-63000/149311: 26231 files within domain
-64000/149311: 26681 files within domain
-65000/149311: 27139 files within domain
-66000/149311: 27535 files within domain
-67000/149311: 27906 files within domain
-68000/149311: 28258 files within domain
-69000/149311: 28674 files within domain
-70000/149311: 29215 files within domain
-71000/149311: 29664 files within domain
-72000/149311: 30121 files within domain
-73000/149311: 30533 files within domain
-74000/149311: 30911 files within domain
-75000/149311: 31250 files within domain
-76000/149311: 31607 files within domain
-77000/149311: 32145 files within domain
-78000/149311: 32653 files within domain
-79000/149311: 33102 files within domain
-80000/149311: 33558 files within domain
-81000/149311: 33991 files within domain
-82000/149311: 34381 files within domain
-83000/149311: 34697 files within domain
-84000/149311: 35199 files within domain
-85000/149311: 35742 files within domain
-86000/149311: 36259 files within domain
-87000/149311: 36707 files within domain
-88000/149311: 37168 files within domain
-89000/149311: 37584 files within domain
-90000/149311: 37921 files within domain
-91000/149311: 38310 files within domain
-92000/149311: 38684 files within domain
-93000/149311: 39224 files within domain
-94000/149311: 39764 files within domain
-95000/149311: 40248 files within domain
-96000/149311: 40693 files within domain
-97000/149311: 41144 files within domain
-98000/149311: 41606 files within domain
-99000/149311: 41994 files within domain
-100000/149311: 42352 files within domain
-101000/149311: 42655 files within domain
-102000/149311: 43045 files within domain
-103000/149311: 43583 files within domain
-104000/149311: 44116 files within domain
-105000/149311: 44573 files within domain
-106000/149311: 45021 files within domain
-107000/149311: 45479 files within domain
-108000/149311: 45903 files within domain
-109000/149311: 46252 files within domain
-110000/149311: 46615 files within domain
-111000/149311: 47115 files within domain
-112000/149311: 47656 files within domain
-113000/149311: 48188 files within domain
-114000/149311: 48636 files within domain
-115000/149311: 49085 files within domain
-116000/149311: 49536 files within domain
-117000/149311: 49933 files within domain
-118000/149311: 50294 files within domain
-119000/149311: 50665 files within domain
-120000/149311: 51134 files within domain
-121000/149311: 51682 files within domain
-122000/149311: 52205 files within domain
-123000/149311: 52646 files within domain
-124000/149311: 53087 files within domain
-125000/149311: 53549 files within domain
-126000/149311: 53971 files within domain
-127000/149311: 54355 files within domain
-128000/149311: 54696 files within domain
-129000/149311: 55237 files within domain
-130000/149311: 55773 files within domain
-131000/149311: 56277 files within domain
-132000/149311: 56724 files within domain
-133000/149311: 57171 files within domain
-134000/149311: 57634 files within domain
-135000/149311: 58034 files within domain
-136000/149311: 58360 files within domain
-137000/149311: 58770 files within domain
-138000/149311: 59321 files within domain
-139000/149311: 59864 files within domain
-140000/149311: 60342 files within domain
-141000/149311: 60789 files within domain
-142000/149311: 61237 files within domain
-143000/149311: 61695 files within domain
-144000/149311: 62157 files within domain
-145000/149311: 62551 files within domain
-146000/149311: 62905 files within domain
-147000/149311: 63369 files within domain
-148000/149311: 63916 files within domain
-149000/149311: 64464 files within domain
+64498
+0/64498
+1000/64498
+2000/64498
+3000/64498
+4000/64498
+5000/64498
+6000/64498
+7000/64498
+8000/64498
+9000/64498
+10000/64498
+11000/64498
+12000/64498
+13000/64498
+14000/64498
+15000/64498
+16000/64498
+17000/64498
+18000/64498
+19000/64498
+20000/64498
+21000/64498
+22000/64498
+23000/64498
+24000/64498
+25000/64498
+26000/64498
+27000/64498
+28000/64498
+29000/64498
+30000/64498
+31000/64498
+32000/64498
+33000/64498
+34000/64498
+35000/64498
+36000/64498
+37000/64498
+38000/64498
+39000/64498
+40000/64498
+41000/64498
+42000/64498
+43000/64498
+44000/64498
+45000/64498
+46000/64498
+47000/64498
+48000/64498
+49000/64498
+50000/64498
+51000/64498
+52000/64498
+53000/64498
+54000/64498
+55000/64498
+56000/64498
+57000/64498
+Traceback (most recent call last):
+  File "/home/pbigalke/Documents/Code/data-investigation/data-investigation/preprocess_data/preprocess_MWCC_H.py", line 295, in <module>
+    main_add_hail_class()
+  File "/home/pbigalke/Documents/Code/data-investigation/data-investigation/preprocess_data/preprocess_MWCC_H.py", line 58, in main_add_hail_class
+    add_hail_class_to_netcdf(fl)
+  File "/home/pbigalke/Documents/Code/data-investigation/data-investigation/preprocess_data/preprocess_MWCC_H.py", line 66, in add_hail_class_to_netcdf
+    with xr.open_dataset(mwcch_file) as ds:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pbigalke/miniconda3/envs/my_satpy_env/lib/python3.12/site-packages/xarray/backends/api.py", line 554, in open_dataset
+    engine = plugins.guess_engine(filename_or_obj)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pbigalke/miniconda3/envs/my_satpy_env/lib/python3.12/site-packages/xarray/backends/plugins.py", line 197, in guess_engine
+    raise ValueError(error_msg)
+ValueError: did not find a match in any of xarray's currently installed IO backends ['netcdf4', 'scipy', 'zarr']. Consider explicitly selecting one of the installed engines via the ``engine`` parameter, or installing additional IO dependencies, see:
+https://docs.xarray.dev/en/stable/getting-started-guide/installing.html
+https://docs.xarray.dev/en/stable/user-guide/io.html

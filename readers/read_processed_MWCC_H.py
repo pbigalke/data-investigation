@@ -10,9 +10,8 @@ import matching_data.collect_matching_files as clct
 def read(file_path):
     """ read processed MWCC-H output containing probability of hail
     """
-    with xr.open_dataset(file_path) as dataset:
-        data = dataset
-    return data
+    with xr.open_dataset(file_path, engine="netcdf4") as dataset:
+        return dataset
 
 def get_y_m_d_from_filepath(file_path):
     

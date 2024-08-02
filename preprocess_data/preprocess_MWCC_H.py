@@ -7,23 +7,23 @@ import sys
 sys.path.append("..")
 # import my own script
 import helpers.datetime_helper as hlp
+import matching_data.collect_matching_files as match
 import readers.read_processed_MWCC_H as mwcch
 from config.domain_info import domain_expats
 
 # %%
 def main():
-    path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
-    output_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-    # years = [2022]
-    # months = [6]
-    # days = [5]
-    # detectors = ["ATMS", "MHS", "SSMIS", "GMI"]
-    # all_files = _get_mwcch_files_in_study_period(path, detectors, years, months, days)
-    # print(len(all_files))
-    # count = 0
+    path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/MWCC-H_raw"
+    output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
+    years = [2022]
+    months = [6]
+    days = [5]
+    detectors = ["ATMS", "MHS", "SSMIS", "GMI"]
+    all_files = match.get_mwcch_files_in_study_period(path, detectors, years, months, days)
+    print(len(all_files))
 
     # read all files in directory
-    all_files = sorted(glob.glob(f"{path}/*/*/*.asc.gz"))
+    # all_files = sorted(glob.glob(f"{path}/*/*/*.asc.gz"))
 
     count = 0
     count_in_domain = 0
@@ -43,8 +43,14 @@ def main_add_hail_class():
     output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
 
     # read all files in directory
-    all_files = sorted(glob.glob(f"{output_path}/*/*/*/*.nc"))
-    print(len(all_files), flush=True)
+    # all_files = sorted(glob.glob(f"{output_path}/*/*/*/*.nc"))
+    # print(len(all_files), flush=True)
+
+    years = [2022]
+    months = [6]
+    days = [5]
+    all_files = match.get_files_in_study_period(output_path, years, months, days)
+    print(len(all_files))
 
     count = 0
     # loop over files
@@ -64,9 +70,15 @@ def main_add_hail_class():
 def add_hail_class_to_netcdf(mwcch_file):
     
     with xr.open_dataset(mwcch_file) as ds:
+        
+        if "hail_class" in list(ds.keys()):
+            return
+        
         mwcch_data = ds.load()
+
     mwcch_data['hail_class'] = ('index', mwcch.get_hail_class(mwcch_data.POH.values))
     mwcch_data.to_netcdf(mwcch_file)
+    return
 
 def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path=None):
     
@@ -254,34 +266,6 @@ def _get_satellite_from_mwcch_filepath(file_path):
 
 def _get_detector_from_mwcch_filepath(file_path):
     return file_path.split('/')[-2]
-
-def _get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
-    
-    if detectors is not None and not isinstance(detectors, list):
-        detectors = list(detectors)
-    if years is not None and not isinstance(years, list):
-        years = list(years)
-    if months is not None and not isinstance(months, list):
-        months = list(months)
-    if days is not None and not isinstance(days, list):
-        days = list(days)
-
-    mwcch_files = []
-
-    for year in years:
-        for detector in detectors:
-            for f in glob.glob(f"{mwcch_directory}/{year}/{detector}/*.asc.gz"):
-                #mwcch_files.append(f)
-                try:
-                    year, month, day = _get_y_m_d_from_mwcch_filepath(f)
-                except ValueError:
-                    print("error when retrieving date string from file path: ", f)
-                
-                if month in months:
-                    if day in days:
-                        mwcch_files.append(f)
-
-    return mwcch_files
 
 # %%
 if __name__ == "__main__":

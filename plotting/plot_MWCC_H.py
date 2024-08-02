@@ -10,9 +10,9 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats
-from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
-from plotting.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
-from plotting.plot_MSG import plot_msg_data, draw_msg_colorbar, msg_mask_clouds
+from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
+import plotting.plot_orography_and_map as map_plt
+import plotting.plot_MSG as msg_plt
 
 
 # %%
@@ -84,7 +84,8 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, alpha=1.0, projection=TRANSFO
     ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
     ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
-def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, mark_points=None, 
+def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, 
+                        mark_points=None, draw_subdomains=None, 
                         projection=TRANSFORM, transform=TRANSFORM, 
                         transparent=True, title=None, path_out=None):
     """ plot probability of hail contour over MSG radiances
@@ -104,10 +105,10 @@ def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, ma
     ax_cbar = fig.add_subplot(gs[1, 1])
     
     # draw map
-    draw_map(ax_plot, mode="dark", extent=domain, cities=False)
+    map_plt.draw_map(ax_plot, mode="dark", extent=domain, cities=False)
 
     # draw grid    
-    draw_grid(ax_plot)
+    map_plt.draw_grid(ax_plot)
 
     # plot hail probability if not None
     plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, projection=projection)
@@ -117,7 +118,13 @@ def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, ma
 
     # if points are given mark as crosses
     if isinstance(mark_points, list):
-        ax_plot.scatter(mark_points[0], mark_points[1], marker="x", color="r")
+        for point in mark_points:
+            map_plt.mark_point(ax_plot, point[0], point[1], color=point[2], marker=point[3])
+
+    # if subdomains are given draw edges
+    if isinstance(draw_subdomains, list):
+        for subdom in draw_subdomains:
+            map_plt.draw_subdomain(ax_plot, subdom[:4], subdom[4], subdom[5])
     
     # set title
     if title is not None:
@@ -132,7 +139,8 @@ def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, ma
         plt.close()
 
 def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=None, mwcc_lats=None, mwcc_poh=None, 
-                        cmap=mpl.cm.Greys, vmin=None, vmax=None, alpha_mwcch=1.0, alpha_msg=1.0, clear_sky_thresh=None, draw_oro=False,
+                        vmin=None, vmax=None, alpha_mwcch=1.0, alpha_msg=1.0, clear_sky_thresh=None, draw_oro=False,
+                        mark_points=None, draw_subdomains=None,
                         domain=domain_expats, projection=TRANSFORM, transform=TRANSFORM, 
                         transparent=True, title=None, path_out=None):
     """ plot probability of hail contour over MSG radiances
@@ -175,21 +183,27 @@ def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=Non
 
     # draw filled orography if clear sky threshold is given
     if draw_oro:
-        draw_orography_filled(ax_plot)
+        map_plt.draw_orography_filled(ax_plot)
     
     # draw map
-    draw_map(ax_plot, mode="light", extent=domain, cities=False)
+    map_plt.draw_map(ax_plot, mode="light", extent=domain, cities=False)
 
     # draw grid    
-    draw_grid(ax_plot)
+    map_plt.draw_grid(ax_plot)
+
+    # set colormap according to channel
+    if "-" in channelname:
+        cmap = msg_plt.create_WV_IR_diff_colormap(vmin, 0, vmax)
+    else:
+        cmap = CMAP_MSG_GREY
 
     # plot msg channel
-    plot_msg_data(ax_plot, msg_lons, msg_lats, 
-                  msg_mask_clouds(msg_data, channelname, clear_sky_thresh) if clear_sky_thresh else msg_data, 
+    msg_plt.plot_msg_data(ax_plot, msg_lons, msg_lats, 
+                  msg_plt.msg_mask_clouds(msg_data, channelname, clear_sky_thresh) if clear_sky_thresh else msg_data, 
                   cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha_msg, transform=transform)
     
     # draw MSG colorbar
-    draw_msg_colorbar(fig, ax_cbar_msg, channelname, cmap=cmap, vmin=vmin, vmax=vmax,
+    msg_plt.draw_msg_colorbar(fig, ax_cbar_msg, channelname, cmap=cmap, vmin=vmin, vmax=vmax,
                       orientation='vertical', tick_position='left')
 
     # plot hail probability if not None
@@ -199,6 +213,16 @@ def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=Non
 
     # draw MWCC-H colorbar
     draw_mwcch_colorbar(fig, ax_cbar_mwcch, orientation='vertical')
+
+    # if points are given mark as crosses
+    if isinstance(mark_points, list):
+        for point in mark_points:
+            map_plt.mark_point(ax_plot, point[0], point[1], color=point[2], marker=point[3])
+
+    # if subdomains are given draw edges
+    if isinstance(draw_subdomains, list):
+        for subdom in draw_subdomains:
+            map_plt.draw_subdomain(ax_plot, subdom[:4], subdom[4], subdom[5])
     
     # set title
     if title is not None:

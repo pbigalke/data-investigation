@@ -29,6 +29,24 @@ channels = {
             "WV_062-IR_108": r"(6.2 -10.8) ${\mu}m$",
 }
 
+def create_WV_IR_diff_colormap(vmin, center, vmax, diverg_cmap=mpl.cm.seismic):
+    if vmin is None:
+        vmin = -1
+    if vmax is None:
+        vmax = 1
+
+    # get number of colors above and below center point representing the respective range percentages
+    n_pos = int(265*(vmax-center)/(vmax-vmin)) if vmax > center else 1
+    n_neg = int(265*(center-vmin)/(vmax-vmin)) if vmin < center else 1
+
+    # sample colors
+    colors_pos = diverg_cmap(np.linspace(0.7, 1, n_pos))
+    colors_neg = diverg_cmap(np.linspace(0, 0.5, n_neg))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors_neg, colors_pos))
+    return mpl.colors.LinearSegmentedColormap.from_list('recentered_cmap', colors)
+
 # %%
 def draw_msg_colorbar(fig, ax, channelname, cmap=mpl.cm.Greys, vmin=None, vmax=None,
                       orientation='vertical', tick_position='right'):

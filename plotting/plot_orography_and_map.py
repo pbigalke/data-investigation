@@ -96,3 +96,14 @@ def draw_grid(ax, transform=TRANSFORM, style=GRID_DARK):
     ax.spines["bottom"].set_linewidth(3)
     ax.spines["left"].set_linewidth(3)
 
+
+def mark_point(ax, lon, lat, color, marker):
+    ax.scatter(lon, lat, color=color, marker=marker)
+
+
+def draw_subdomain(ax, extent, color, line):
+    x = [extent[0], extent[1], extent[1], extent[0], extent[0]]
+    y = [extent[2], extent[2], extent[3], extent[3], extent[2]]
+    ax.plot(x,y, color=color, linestyle=line)
+
+    return None
