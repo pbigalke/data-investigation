@@ -14,7 +14,7 @@ from config.domain_info import domain_expats
 import readers.read_processed_MWCC_H as mwcc
 import readers.read_MSG as msg
 import helpers.datetime_helper as hlp
-import matching_data.collect_matching_files as fls
+import matching_data.collect_matching_files as match
 import plotting.plot_MWCC_H as mwcc_plt
 from plotting.mpl_style import CMAP_MSG_GREY
 
@@ -22,7 +22,7 @@ from plotting.mpl_style import CMAP_MSG_GREY
 
 def main():
 
-    mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    mwcch_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
     # msg_path = "/data/sat/msg/rapid_scan/netcdf/noparallax"
     msg_path = "/data/sat/msg/netcdf/parallax"
 
@@ -37,15 +37,15 @@ def main():
     domain = domain_expats
     
     # collect all files in study period
-    all_mwcch_files = fls.get_files_in_study_period(mwcch_path, years, months=months, days=days)
-    all_msg_files = fls.get_msg_daily_files_in_study_period(msg_path, years, months=months, days=days)
+    all_mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
+    all_msg_files = match.get_msg_daily_files_in_study_period(msg_path, years, months=months, days=days)
     print(f"{len(all_msg_files)} MSG files and {len(all_mwcch_files)} MWCC-H files")
 
     # define channels to plot
-    channels = ["WV_062-IR_108", "IR_108", "IR_087"]
+    channels = ["WV_062"]#"WV_062-IR_108", "IR_108", "IR_087"]
 
     # loop over channels
-    for channel in channels[1:-1]:
+    for channel in channels:
         print(channel)
         path_channel = f"{output_path}/{channel}"
         if not os.path.exists(path_channel):
@@ -76,7 +76,7 @@ def main():
                 dt = hlp.get_datetimestring_from_npdatetime(timestamp)
 
                 # check if mwcch file is in this timestamp
-                mwcc_files = fls.get_file_at_msg_timestamp(mwcch_path, timestamp, msg_res=msg_res)
+                mwcc_files = match.get_file_at_msg_timestamp(mwcch_path, timestamp, msg_res=msg_res)
 
                 # read data from MWCC-H file if there is any
                 data_mwcc = mwcc.read(mwcc_files[0]) if len(mwcc_files) > 0 else None
