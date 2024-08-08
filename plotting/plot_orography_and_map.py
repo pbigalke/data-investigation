@@ -76,14 +76,14 @@ def draw_map(ax, extent=domain_expats, mode="dark", cities=True):
         extent = domain_expats
     ax.set_extent(extent) #[left, right, bottom ,top]
 
-def draw_grid(ax, transform=TRANSFORM, style=GRID_DARK):
+def draw_grid(ax, xticks=True, yticks=True, transform=TRANSFORM, style=GRID_DARK):
 
     gl = ax.gridlines(crs=transform, draw_labels=style["labels"], \
                       alpha=style["alpha"], linewidth=style["linewidth"])
-    gl.top_labels = style["toplabels"]
-    gl.right_labels = style["rightlabels"]
-    gl.bottom_labels = style["bottomlabels"]
-    gl.left_labels = style["leftlabels"]
+    gl.top_labels = style["toplabels"] if xticks else False
+    gl.bottom_labels = style["bottomlabels"] if xticks else False
+    gl.right_labels = style["rightlabels"] if yticks else False
+    gl.left_labels = style["leftlabels"] if yticks else False
     gl.xlabel_style = {'fontsize': TICKSIZE, 'color': style["labelcolor"]}
     gl.ylabel_style = {'fontsize': TICKSIZE, 'color': style["labelcolor"]}
     
