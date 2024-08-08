@@ -43,17 +43,9 @@ def get_corresponding_msg_files(directory, timestamps):
 
 def get_closest_msg_timestamp(npdatetime, msg_res=15):
 
-    round_dt = npdatetime.round('15min')
+    round_dt = npdatetime.round(f'{msg_res}min')
     print(round_dt)
     return
-
-    start_msg = int(dt[-4:])
-    end_msg = start_msg + msg_res if (int(dt[-2:])+msg_res) < 60 else start_msg + (40+msg_res)
-    start_data = int(f.split('_')[-4][1:])
-    end_data = int(f.split('_')[-3][1:])
-    if start_msg < start_data and start_data < end_msg \
-        or start_msg < end_data and end_data < end_msg:
-        closest_files.append(f)
 
 def add_hail_class_to_netcdf(mwcch_file):
     
@@ -62,7 +54,7 @@ def add_hail_class_to_netcdf(mwcch_file):
     mwcch_data['hail_class'] = ('index', mwcch_read.get_hail_class(mwcch_data.POH.values))
     mwcch_data.to_netcdf(mwcch_file)
 
-def get_MSG_timeseries(msg_path, last_timestamp, n_frames):
+def get_MSG_timeseries(msg_path, last_timestamp, msg_res, n_frames):
     # get closest MSG timestamp from overpass end time
     last_frame = pd.Timestamp(last_timestamp).round(f'{msg_res}min').to_datetime64()
 
@@ -88,6 +80,11 @@ def get_MSG_timeseries(msg_path, last_timestamp, n_frames):
     msg_time_series = xr.merge(msg_time_series)
     return msg_time_series
 
+def get_center_of_mass_for_variable(lon, lat, variable):
+    cg_lat = np.sum(lat * variable) / np.sum(variable)
+    cg_lon = np.sum(lon * variable) / np.sum(variable)
+    return cg_lon, cg_lat
+
 def get_closest_index(arr, val):
     idx = np.searchsorted(arr, val)
     # clip to last index
@@ -106,7 +103,7 @@ def add_padding_at_data_edge(idx, data_dim, padding):
         idx = int(data_dim-1 - padding)
     return idx
 
-def crop_extent_over_location(msg_lon, msg_lat, loc_lon, loc_lat, cropsize):
+def get_crop_extent_from_center_choords(msg_lon, msg_lat, loc_lon, loc_lat, cropsize):
     
     # find center of crop
     idx_lon_c = get_closest_index(msg_lon, loc_lon)
@@ -118,9 +115,10 @@ def crop_extent_over_location(msg_lon, msg_lat, loc_lon, loc_lat, cropsize):
 
     # get indices of edges of crop
     idx_lon_min = idx_lon_c - int(cropsize/2.)
-    idx_lon_max = idx_lon_min + int(cropsize)
+    idx_lon_max = idx_lon_min + int(cropsize) - 1
+    # need to substract 1 as xr.dataset.sel(lon=slice(minlon, maxlon)) includes the edges
     idx_lat_min = idx_lat_c - int(cropsize/2.)
-    idx_lat_max = idx_lat_min + int(cropsize)
+    idx_lat_max = idx_lat_min + int(cropsize) - 1
 
     # get corresponding lon lat extent
     lon_min = msg_lon[idx_lon_min]
@@ -130,147 +128,169 @@ def crop_extent_over_location(msg_lon, msg_lat, loc_lon, loc_lat, cropsize):
 
     return lon_min, lon_max, lat_min, lat_max
 
-def crop_over_hail_area():
-    return
+def get_crop_extent_over_maxhailarea(msg_timeseries, mwcch_data, cropsize):
 
-
-# %%
-# mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-msg_path = "/data/sat/msg/netcdf/parallax"
-mwcch_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
-
-output_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/casestudy_20220605"
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
-
-years = [2022]
-months = [6]
-days = [5]
-msg_res = 15
-
-# %%
-n_frames = 8
-cropsize = 128
-channels = {'WV_062-IR_108': {"vmin":-60, "vmax":5}, 
-            #'IR_108': {"vmin":200, "vmax":280}, 
-  }  # 
-
-# ---------------------------------------------------------------------
-# load all mwcc-h files in study period
-mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
-print(len(mwcch_files))
-
-
-# loop over mwcch files
-for f in mwcch_files:
-    print(f)
-
-    # ---------------------------------------------------------------------
-    # read in mwcc_file
-    mwcch_data = mwcch_read.read(f)
-
+    # get max hail class in mwcch data
     max_hail_class = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values))
-    print("max hail class, ", max_hail_class)
+
+    # if no hail is present TODO: implement solution for this case
     if max_hail_class == "no_hail":
         print("no hail in this scene, implement random cropping here")
         # nur über overpass area ausschneiden sonst verfälscht
-        continue
-        
-    # ---------------------------------------------------------------------
-    # read in MSG time series ending in mwcc-h timestamp
-
-    # get end time of overpass
-    mwcch_end = mwcch_data.datetime.values[-1]
-
-    # get corresponding MSG time series
-    msg_data = get_MSG_timeseries(msg_path, mwcch_end, n_frames=n_frames)
-
-        
-    # ---------------------------------------------------------------------
-    # find center of maximum hail area from mwcc-h data
-
+        return None
+    
     # mask mwcc-h data where maximum hail class occurs
     masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class)
 
-    # center of mass of maximum hail area
-    cg_lat = np.sum(masked_data.lat * masked_data.POH)/np.sum(masked_data.POH)
-    cg_lon = np.sum(masked_data.lon * masked_data.POH)/np.sum(masked_data.POH)
+    # calculate center of mass for variable
+    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.POH)
     
     # get extent of crop over hail area
-    minlon, maxlon, minlat, maxlat = crop_extent_over_location(msg_data.lon.values, 
-                                                                msg_data.lat.values, 
-                                                                cg_lon, cg_lat, cropsize)
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
+                                                                         cg_lon, cg_lat, cropsize)
+    return cg_lon.values, cg_lat.values, minlon, maxlon, minlat, maxlat
+
+def recenter_crop_over_highest_clouds(msg_timeseries, crop_extent, mode="all"):
+
+    # get difference between 6.2 and 10.8 channels
+    diffWVIR = msg_timeseries.WV_062.isel(time=-1) - msg_timeseries.IR_108.isel(time=-1)
+
+    # only lokk at values within original crop over hail area
+    diffWVIR_in_crop = diffWVIR.sel(lon=slice(crop_extent[0], crop_extent[1]), lat=slice(crop_extent[2], crop_extent[3]))
+
+    # get cropsize
+    cropsize = len(diffWVIR_in_crop.lon.values)
+
+    # if looking only at OT proxy
+    if mode == "OT":
+        # consider only positive difference values (=OT)
+        diffWVIR_in_crop = diffWVIR_in_crop.where(diffWVIR > 0)
+
+    # find center of mass for diff-WV-IR values WITHIN FIRST CROP OVER HAIL AREA
+    cg_lon_recentered = np.sum(diffWVIR_in_crop.lon * diffWVIR_in_crop) / np.sum(diffWVIR_in_crop)
+    cg_lat_recentered = np.sum(diffWVIR_in_crop.lat * diffWVIR_in_crop) / np.sum(diffWVIR_in_crop)
+
+    # overwrite hail area crop with new recentered crop extent
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
+                                                                            cg_lon_recentered, cg_lat_recentered, cropsize)
+    
+    return cg_lon_recentered.values, cg_lat_recentered.values, minlon, maxlon, minlat, maxlat
+
+def add_attributes(msg_timeseries, cg_lon, cg_lat, cg_lon_recentered=None, cg_lat_recentered=None):
+    # add global attributes about the data
+    description = "MSG time series cropped over location of hail area in last frame " + \
+        "detected by the PMW satellite hail probability MWCC-H."
+    start_time = hlp.get_datetimestring_from_npdatetime(msg_timeseries.time.values[0])
+    end_time = hlp.get_datetimestring_from_npdatetime(msg_timeseries.time.values[-1])
+    n_frames = len(msg_timeseries.time.values)
+    n_pixel = len(msg_timeseries.lon.values)
+    hail_area_lon = cg_lon
+    hail_area_lat = cg_lat
+    recentered_lon = "" if cg_lon_recentered is None else cg_lon_recentered
+    recentered_lat = "" if cg_lat_recentered is None else cg_lat_recentered
+
+    msg_timeseries = msg_timeseries.assign_attrs(description=description, 
+                                                 start_time=start_time, end_time=end_time, 
+                                                 n_frames=n_frames, n_pixel=n_pixel, 
+                                                 hail_area_lon=hail_area_lon, hail_area_lat=hail_area_lat, 
+                                                 recentered_lon=recentered_lon, recentered_lat=recentered_lat)
+    return msg_timeseries
+    
+def crop_and_save_MSG_timeseries(msg_timeseries, mwcch_data, cropsize, filepath, recenter=None):
+
+    # get extent of crop over max hail class area
+    cg_lon, cg_lat, minlon, maxlon, minlat, maxlat = \
+        get_crop_extent_over_maxhailarea(msg_timeseries, mwcch_data, cropsize)
+    
+    if recenter is not None:
+        # recenter crop over highest cloud area within crop
+        cg_lon_recentered, cg_lat_recentered, minlon, maxlon, minlat, maxlat = \
+            recenter_crop_over_highest_clouds(msg_timeseries, [minlon, maxlon, minlat, maxlat], mode=recenter)
+
+    # return cropped dataset
+    msg_timeseries = msg_timeseries.sel(lon=slice(minlon, maxlon), lat=slice(minlat, maxlat))
+    
+    # add global attributes describing the data
+    msg_timeseries = add_attributes(msg_timeseries, cg_lon, cg_lat, 
+                                    cg_lon_recentered=None if recenter is None else cg_lon_recentered, 
+                                    cg_lat_recentered=None if recenter is None else cg_lat_recentered)
+
+    # save to given filepath
+    msg_timeseries.to_netcdf(filepath)
+
+
+
+# %%
+def construct_MSG_timeseries(recenter=None):
+    # mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    msg_path = msg_read.MSG_PATH
+    mwcch_path = mwcch_read.MWCCH_PATH
+    
+    recenter_suffix = "" if recenter is None else f"_recentered_{recenter}"
+    output_path = f"/net/merisi/pbigalke/data/MSG_timeseries_maxhailarea{recenter_suffix}"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    # study period settings
+    years = [2022]
+    months = [6]
+    days = [5]
+
+    # time series settings
+    msg_res = 15
+    n_frames = 8
+    cropsize = 128
 
     # ---------------------------------------------------------------------
-    # find center of OT proxy area (positive difference between WV_6.2 and IR_108)
-    
-    # find center of mass for area of highest convection in last frame
-    ot_mask = msg_data.WV_062.isel(time=-1) - msg_data.IR_108.isel(time=-1) > 0
-    masked_by_ot = msg_data.isel(time=-1).where(ot_mask)
-    ot_proxy = masked_by_ot.WV_062 - masked_by_ot.IR_108
-    ot_lon = np.sum(ot_proxy.lon * ot_proxy)/np.sum(ot_proxy)
-    ot_lat = np.sum(ot_proxy.lat * ot_proxy)/np.sum(ot_proxy)
+    # load all mwcc-h files in study period
+    mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
 
-    # get extent of crop over OT area
-    minlon_ot, maxlon_ot, minlat_ot, maxlat_ot = crop_extent_over_location(msg_data.lon.values,
-                                                                            msg_data.lat.values, 
-                                                                            ot_lon, ot_lat, cropsize)
-    
-    # ---------------------------------------------------------------------
-    # loop over channels
-    for channel in channels:
+    # loop over mwcch files
+    for f in mwcch_files:
+        print(f, flush=True)
 
-        # get data from channel
-        if "-" in channel:
-            chan1 = channel.split("-")[0]
-            chan2 = channel.split("-")[1]
-            print(chan1, chan2)
-            msg_tb = msg_data[chan1] - msg_data[chan2]
-        else:
-            msg_tb = msg_data[channel]
+        # ------------------------------------------------------------ read MWCC-H
+        # read in mwcc_file
+        mwcch_data = mwcch_read.read(f)
 
-        # ---------------------------------------------------------------------
-        # plot for all timestamps in time series
-        for t, ts in enumerate(msg_data.time.values[::-1]):
-            if t == 0:
-                # plot last timestamp with hail area crop
-                dt = hlp.get_datetimestring_from_npdatetime(ts)
-                title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
-                outname = f"{output_path}/crop_over_maxhailarea/{dt}_{channel}_crop_over_maxhailarea.png"
+        # ------------------------------------------------------------ get label
+        # set label to maximum hail class within domain
+        label = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values))
+        print(label, flush=True)
+        if label == "no_hail":
+            continue
 
-                # plot crops over MSG and MWCC-H
-                mwcc_plt.plot_mwcch_over_MSG(msg_data.lon.values, msg_data.lat.values, msg_tb.sel(time=ts), channel, 
-                                            mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, 
-                                            mark_points=[[cg_lon, cg_lat, 'purple', 'x']], 
-                                            draw_subdomains=[[minlon, maxlon, minlat, maxlat, 'purple', '-']], 
-                                            vmin=channels[channel]["vmin"], vmax=channels[channel]["vmax"], 
-                                            title=title, path_out=outname)
-                
-                # plot last timestamp with hail area crop
-                title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
-                outname = f"{output_path}/crop_over_maxhailarea_and_OTarea/{dt}_{channel}_crop_over_maxhailarea_and_OTarea.png"
+        # define output path for this label
+        path_label = os.path.join(output_path, label)
+        if not os.path.exists(path_label):
+            os.makedirs(path_label)
+           
+        # ------------------------------------------------------------ create MSG time serie
+        # read in MSG time series ending in mwcc-h timestamp
 
-                # plot crops over MSG and MWCC-H
-                mwcc_plt.plot_mwcch_over_MSG(msg_data.lon.values, msg_data.lat.values, msg_tb.sel(time=ts), channel, 
-                                            mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, 
-                                            mark_points=[[cg_lon, cg_lat, 'purple', 'x'], [ot_lon, ot_lat, 'g', 'x']], 
-                                            draw_subdomains=[[minlon, maxlon, minlat, maxlat, 'purple', '-'],
-                                                            [minlon_ot, maxlon_ot, minlat_ot, maxlat_ot, 'g', '-']], 
-                                            vmin=channels[channel]["vmin"], vmax=channels[channel]["vmax"], 
-                                            title=title, path_out=outname)
+        # get end time of overpass
+        mwcch_end = mwcch_data.datetime.values[-1]
 
+        # get corresponding MSG time series
+        msg_timeseries = get_MSG_timeseries(msg_path, mwcch_end, msg_res, n_frames)
 
-            # dt = hlp.get_datetimestring_from_npdatetime(ts)
-            # title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
-            # outname = f"{output_path}/{dt}_{channel}_crop_over_maxhailarea.png"
-            # mwcc_plt.plot_mwcch_over_MSG(msg_data.lon.values, msg_data.lat.values, msg_data[channel].sel(time=ts), channel, 
-            #                             mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, 
-            #                             mark_points=[[cg_lon, cg_lat, 'r', 'x']], 
-            #                             draw_subdomains=[[minlon, maxlon, minlat, maxlat, 'r', '-']], 
-            #                             vmin=vmin, vmax=vmax, title=title, path_out=outname)
+        # add global attribute about 
 
-                            
+        # define output filename
+        dt_end = hlp.get_datetimestring_from_npdatetime(msg_timeseries.time.values[-1])
+        filepath = os.path.join(path_label, f"{dt_end}_{n_frames}frames_{cropsize}pix{recenter_suffix}.nc")
 
+        # crop and save timeseries over hail event
+        crop_and_save_MSG_timeseries(msg_timeseries, mwcch_data, cropsize, filepath, recenter=recenter)
+        
+   
 
+# %%
+if __name__ == "__main__":
+    construct_MSG_timeseries()
+    # no hail
+    # 20220605_S0340_E0341_SSMIS_f16.nc
+    # 20220605_S1017_E1017_MHS_meto03.nc    
+    # 20220605_S1820_E1821_SSMIS_f17.nc
 
 # %%
