@@ -6,6 +6,8 @@ import sys
 sys.path.append("..")
 import matching_data.collect_matching_files as clct
 
+MWCCH_PATH = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
+
 # %%
 def read(file_path):
     """ read processed MWCC-H output containing probability of hail
@@ -14,7 +16,7 @@ def read(file_path):
         return dataset
 
 def get_y_m_d_from_filepath(file_path):
-    
+    print("not implemented yet")
     return None
 
 def get_sat_from_filepath(file_path):
@@ -25,12 +27,16 @@ def get_sat_from_filepath(file_path):
             return sat
     return None
 
-def get_hail_class(poh):
+def get_hail_class(poh=None):
     hail_classes = ["no_hail", 
                     "hail_potential", 
                     "hail_initiation_graupel", 
                     "large_hail", 
                     "super_hail"]
+    if poh is None:
+        return hail_classes
+    
+    # search for hail class corresponding to given poh
     boundaries = [0, 0.2, 0.36, 0.45, 0.6, 1.01]
     idx = np.searchsorted(boundaries, poh, side='right') - 1
     return np.take(hail_classes, idx)
