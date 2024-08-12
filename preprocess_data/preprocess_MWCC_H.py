@@ -3,16 +3,19 @@ import os
 import glob
 import xarray as xr
 import pandas as pd
+from scipy.interpolate import griddata
+import numpy as np
 import sys
 sys.path.append("..")
 # import my own script
 import helpers.datetime_helper as hlp
 import matching_data.collect_matching_files as match
 import readers.read_processed_MWCC_H as mwcch
+import readers.read_MSG as msg
 from config.domain_info import domain_expats
 
 # %%
-def main():
+def main_save_MWCCH_as_netcdf():
     path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/MWCC-H_raw"
     output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
     years = [2022]
@@ -39,7 +42,7 @@ def main():
 
         count += 1
 
-def main_add_hail_class():
+def main_add_hail_class_to_netcdf():
     output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
 
     # read all files in directory
@@ -65,6 +68,89 @@ def main_add_hail_class():
 
         count += 1
 
+def main_regrid_MWCCH_to_MSG_grid():
+
+    original_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
+    #all_files = sorted(glob.glob(f"{original_path}/*/*/*/*.nc"))
+    output_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf_MSG_grid"
+    MSG_example_file = "/data/sat/msg/netcdf/parallax/2023/09/20230930-EXPATS-RG.nc"
+
+    years = [2022]
+    months = [6]
+    days = [5]
+
+    # get MSG lon and lat
+    msg_lon, msg_lat = msg.get_lon_lat()
+
+    count = 0
+    for year in years:
+        for month in months:
+            for day in days:
+                files_day = match.get_files_in_study_period(original_path, year, month, day)
+                
+                # # loop over files
+                # for f, fl in enumerate(all_files[]):
+                #     print(f, fl)
+
+                f, fl = 0, files_day[0]
+                # print status every few files
+                if f % 1000 == 0:
+                    print(f"{count}", flush=True)
+
+                # read hail data
+                data = mwcch.read(fl)
+                vars = [k for k in data.keys() if k not in ['lon', 'lat', 'hail_class']]
+                print(data)
+                print(vars)
+
+                # regrid to MSG grid
+                poh_regrid = regrid_data_to_MSG(data.lon.values, data.lat.values, 
+                                                data.POH.values, msg_lon, msg_lat)
+                print("poh regridded", poh_regrid.shape)
+                
+                # regrid to MSG grid
+                hail_class_regrid = regrid_data_to_MSG(data.lon.values, data.lat.values, 
+                                                data.hail_class.values, msg_lon, msg_lat, method="nearest")
+                print("hail class regridded", hail_class_regrid.shape)
+                print(hail_class_regrid[0])
+                
+                # get corresponding hail_class for new gridded data
+                hail_class_from_poh_regrid = mwcch.get_hail_class(poh_regrid)
+                print("hail class from poh regridded", hail_class_from_poh_regrid.shape)
+                print(hail_class_from_poh_regrid[0])
+
+                # create new dataset to store regridded data in
+                return hail_class_from_poh_regrid
+
+                print(poh_regrid.shape, msg_lat.shape, msg_lon.shape)
+                # count += 1
+
+def regrid_data_to_MSG(points_lon, points_lat, points_values, msg_lon, msg_lat, method='linear'):
+    """regrid data points to MSG regular grid
+    Args:
+        points_lon (1Darray(float)): longitude positions of data points
+        points_lat (1Darray(float)): latitude positions of data points
+        points_values (1Darray(float)): values of data points
+        msg_lon (1Darray(float)): longitudes of of regular MSG grid, 1D-array
+        msg_lat (1Darray(float)): latitudes of of regular MSG grid, 1D-array
+        method (str, optional): Method for interpolation as used in scipy.griddata(). Defaults to 'linear'.
+    Returns:
+        regridded data (2Darray(float)): data regridded to regular MSG grid
+    """    
+    # Flatten the old grid coordinates and data for interpolation
+    old_coords = np.array([points_lon, points_lat]).T
+
+    # Create a mesh of MSG grid coordinates
+    lons, lats = np.meshgrid(msg_lon, msg_lat)
+    new_coords = np.array([lons, lats]).T
+
+    # Interpolate old data to new grid using the specified method
+    new_data = griddata(old_coords, points_values, new_coords, method=method)
+
+    # Reshape the flattened data (lats, lons)
+    new_data = new_data.reshape((len(msg_lat), len(msg_lon)))
+
+    return new_data 
 
 #%%
 def add_hail_class_to_netcdf(mwcch_file):
@@ -270,7 +356,10 @@ def _get_detector_from_mwcch_filepath(file_path):
 # %%
 if __name__ == "__main__":
     # main()
-    main_add_hail_class()
+    # main_add_hail_class()
+
+    hail_class_from_poh_regrid = main_regrid_MWCCH_to_MSG_grid()
+
     # path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
     # outpath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
     # years = [2022]
