@@ -13,6 +13,7 @@ from config. domain_info import domain_expats
 from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
 import plotting.plot_orography_and_map as map_plt
 import plotting.plot_MSG as msg_plt
+import readers.read_processed_MWCC_H as mwcch
 
 
 # %%
@@ -81,6 +82,31 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, alpha=1.0, projection=TRANSFO
     levels, colors = get_mwcch_color_levels(alpha=alpha)
     # mask nan values and plot hail probability contours
     z = np.ma.masked_invalid(mwcc_poh)
+    ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
+    ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+
+def plot_mwcch_hailclass(ax, mwcc_lons, mwcc_lats, mwcc_hail_class, alpha=1.0, projection=TRANSFORM):
+    """ plot the hail classes of MWCC-H
+
+    Parameters
+    ----------
+    ax : cartopy axis
+        current axis on which to plot
+    mwcc_lons : 1d-array {float}
+        longitude values of each pixel
+    mwcc_lats : 1d-array {float}
+        latitude values of each pixel
+    mwcc_hail_class : 1d-array {str}
+        hail class for each pixel
+    projection : cartopy projection, optional
+        projection to display data in, by default ccrs.PlateCarree()
+    cbar_loc : str, optional
+        location of colorbar on axis, by default 'right'
+    """
+    hail_classes = mwcch.get_hail_class()
+    levels, colors = get_mwcch_hail_class_color_levels(alpha=alpha)
+    # mask nan values and plot hail probability contours
+    z = np.ma.masked_invalid(mwcc_hail_class)
     ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
     ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
