@@ -2,15 +2,16 @@
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 import sys
 sys.path.append("..")
 import readers.read_processed_MWCC_H as mwcch_read
+import matching_data.collect_matching_files as match
 import MWCCH_overview_plots as mwcch_plt
 
-def main():
+def plot_satellites_contribution_and_number_of_files():
   datapath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
   if not os.path.exists(plotpath):
@@ -58,8 +59,63 @@ def count_overpass_occurrences_expats_domain(path, years, months):
 
   return satellites
 
+def plot_times_of_overpasses(datapath, year, month, days, output_name):
+  f, axes = plt.subplots(len(days), figsize=(20, 1.8*len(days)))
+  f.suptitle("times of overpasses")
+  for d in range(len(days)):
+    ax = axes[d]
+    ax.set_title(f'{year}-{month:02}-{days[d]:02}', y=0.7, x=0.05)
+    all_files = match.get_files_in_study_period(datapath, year, month, [days[d]])
+
+    startstamps = []
+    for file_path in all_files:
+      start, _ = mwcch_read.get_start_and_end_datetimes_from_filepath(file_path)
+      startstamps.append(start)
+
+    for t, ts in enumerate(startstamps):
+      # ax.axvspan(ts, endstamps[t], ymin=0, ymax=0.5)
+      ax.axvline(ts, ymin=0, ymax=0.5)
+      # ax.axvline(endstamps[t], ymin=0, ymax=0.5)
+    xticks = np.arange(f'{year}-{month:02}-{days[d]:02}T00:00', 
+                      f'{year}-{month:02}-{days[d]:02}T23:59', 
+                      np.timedelta64(1, 'h'), dtype='datetime64[h]')
+    ax.set_xticks(xticks, xticks)#, rotation=20)
+    if d < len(days) - 1:
+      ax.tick_params(axis='x',          # changes apply to the x-axis
+                      which='both',      # both major and minor ticks are affected
+                      bottom=True,      # ticks along the bottom edge are off
+                      labelbottom=False)
+
+    ax.set_xlim(xticks[0], xticks[-1] + np.timedelta64(1, 'h'))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_yticks([0, 1], ["", ""])
+    ax.set_ylim
+
+    # For the minor ticks, use no labels; default NullFormatter.
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    ax.grid(which="both")
+
+  plt.tight_layout()
+  plt.savefig(output_name, bbox_inches='tight')
+  plt.close()
+
+# %%
+def plot_times_of_overpasses_for_different_years():
+  datapath = mwcch_read.MWCCH_PATH
+  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
+  if not os.path.exists(plotpath):
+     os.makedirs(plotpath)
+  years = np.arange(1999, 2024, 1)
+  months = [6]
+  days = np.arange(1, 6, 1)
+
+  for year in years:
+    for month in months:
+      output_name = f"{plotpath}/{year}-{month:02}_times_of_overpasses.png"
+      plot_times_of_overpasses(datapath, year, month, days, output_name)
+
 
 # %%
 if __name__ == "__main__":
-   main()
+   plot_times_of_overpasses_for_different_years()
 # %%

@@ -2,7 +2,9 @@
 import glob
 import xarray as xr
 import numpy as np
+import datetime
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
@@ -11,6 +13,25 @@ sys.path.append("..")
 import matching_data.collect_matching_files as clct
 import readers.read_processed_MWCC_H as mwcch_read
 import MWCCH_overview_plots as mwcch_plt
+from config.domain_info import domain_expats
+
+hail_class_colors = {'no_hail': 'whitesmoke', 
+                    'hail_potential': 'lightgrey', 
+                    'hail_initiation_graupel': 'cyan', 
+                    'large_hail': 'darkcyan',
+                    'super_hail': 'lime'}
+hail_class_colors2 = {'no_hail': mpl.cm.get_cmap('Greys')(0.2), 
+                    'hail_potential': mpl.cm.get_cmap('Greys')(0.3), 
+                    'hail_initiation_graupel': mpl.cm.get_cmap('cool')(0), 
+                    'large_hail': mpl.cm.get_cmap('cool')(0.5),
+                    'super_hail': mpl.cm.get_cmap('cool')(0.9)}
+hail_class_cmap = {}
+hail_classes = mwcch_read.get_hail_class()
+cmap = mpl.cm.get_cmap('BuPu')
+clrs = [cmap(c) for c in np.linspace(0.1, 1, len(hail_classes))]
+for h, hail in enumerate(hail_classes):
+  hail_class_cmap[hail] = clrs[h]
+
 
 # %%
 def count_max_mean_hail_levels(path, years, months, hail_levels, 
@@ -136,7 +157,7 @@ def count_max_mean_hail_classes(path, years, months,
   
   else:
     # choords
-    hail_classes = get_hail_class()
+    hail_classes = mwcch_read.get_hail_class()
     sat = ['meto01', 'meto02', 'meto03', 'noaa15', 'noaa16', 'noaa17', 'noaa18', 'noaa19', 'n20', 'n21', 'npp', 'f16', 'f17', 'gpm']
     max_poh_class = np.zeros((len(sat), len(years), len(months), len(hail_classes)))
     mean_poh_class = np.zeros((len(sat), len(years), len(months), len(hail_classes)))
@@ -211,6 +232,7 @@ def count_max_mean_hail_classes(path, years, months,
     count_hail.to_netcdf(counter_filename)
     return count_hail
 
+# %%
 def barplot_occurrences_per_hail_level(hail_counter, output_name=None, figsize=(10, 10), log=False):
   
   x_level = np.arange(0, len(hail_counter.hail_level), 1)
@@ -328,7 +350,9 @@ def plot_occurrences_per_hail_class(hail_counter, output_name=None, figsize=(10,
     plt.close()
 
 # %%
-datapath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+datapath = mwcch_read.MWCCH_PATH
+print(datapath)
+
 plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
 if not os.path.exists(plotpath):
     os.makedirs(plotpath)
