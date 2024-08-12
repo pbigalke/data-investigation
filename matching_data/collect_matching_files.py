@@ -8,19 +8,19 @@ import helpers.datetime_helper as hlp
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
     
     if detectors is not None and not isinstance(detectors, list):
-        detectors = list(detectors)
+        detectors = [detectors]
     if years is not None and not isinstance(years, list):
-        years = list(years)
+        years = [years]
     if months is None:
         months = np.arange(1, 13, 1)
     else:
         if not isinstance(months, list):
-            months = list(months)
+            months = [months]
     if days is None:
         days = np.arange(1, 32, 1)
     else:
         if not isinstance(days, list):
-            days = list(days)
+            days = [days]
 
     mwcch_files = []
 
@@ -37,17 +37,17 @@ def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=No
 def get_files_in_study_period(directory, years, months=None, days=None):
     
     if years is not None and not isinstance(years, list):
-        years = list(years)
+        years = [years]
     if months is None:
         months = np.arange(1, 13, 1)
     else:
         if not isinstance(months, list):
-            months = list(months)
+            months = [months]
     if days is None:
         days = np.arange(1, 32, 1)
     else:
         if not isinstance(days, list):
-            days = list(days)
+            days = [days]
 
     all_files = []
 
@@ -64,17 +64,17 @@ def get_files_in_study_period(directory, years, months=None, days=None):
 def get_msg_daily_files_in_study_period(directory, years, months=None, days=None):
     
     if years is not None and not isinstance(years, list):
-        years = list(years)
+        years = [years]
     if months is None:
         months = np.arange(1, 13, 1)
     else:
         if not isinstance(months, list):
-            months = list(months)
+            months = [months]
     if days is None:
         days = np.arange(1, 32, 1)
     else:
         if not isinstance(days, list):
-            days = list(days)
+            days = [days]
 
     all_files = []
 
