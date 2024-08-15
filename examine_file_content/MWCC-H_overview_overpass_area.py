@@ -11,29 +11,93 @@ import os
 import sys
 sys.path.append("..")
 import matching_data.collect_matching_files as clct
+import helpers.datetime_helper as hlp
 import readers.read_processed_MWCC_H as mwcch_read
 import MWCCH_overview_plots as mwcch_plt
 from config.domain_info import domain_expats
 
-hail_class_colors = {'no_hail': 'whitesmoke', 
-                    'hail_potential': 'lightgrey', 
-                    'hail_initiation_graupel': 'cyan', 
-                    'large_hail': 'darkcyan',
-                    'super_hail': 'lime'}
-hail_class_colors2 = {'no_hail': mpl.cm.get_cmap('Greys')(0.2), 
-                    'hail_potential': mpl.cm.get_cmap('Greys')(0.3), 
-                    'hail_initiation_graupel': mpl.cm.get_cmap('cool')(0), 
-                    'large_hail': mpl.cm.get_cmap('cool')(0.5),
-                    'super_hail': mpl.cm.get_cmap('cool')(0.9)}
-hail_class_cmap = {}
-hail_classes = mwcch_read.get_hail_class()
-cmap = mpl.cm.get_cmap('BuPu')
-clrs = [cmap(c) for c in np.linspace(0.1, 1, len(hail_classes))]
-for h, hail in enumerate(hail_classes):
-  hail_class_cmap[hail] = clrs[h]
-
 
 # %%
+def count_overpasses_per_hour_and_area(path, years, months,
+                                       output_filename="overpasses_per_hour_and_covered_area",
+                                       overwrite=False):
+
+  counter_filename = f"{path}/{output_filename}.nc"
+  if os.path.exists(counter_filename) and not overwrite:
+    print("thingy is here")
+    with xr.load_dataset(counter_filename) as counter:
+      return counter
+  
+  else:
+    # coords
+    days = np.arange(1, 32, 1)
+    hours = np.arange(0, 24, 1)
+    area = np.arange(0, 100, 1)
+    # vars
+    N_overpasses = np.zeros((len(years), len(months), len(days), len(hours), len(area)))
+    
+    count_overpass = xr.Dataset(
+      data_vars=dict(
+          N_overpasses=(["year", "month", "day", "hour", "area_perc"], N_overpasses),
+      ),
+      coords=dict(
+          year=("year", years),
+          month=("month", months),
+          day=("day", days),
+          hour=("hour", hours),
+          area_perc=("area_perc", area),
+      ),
+    )
+
+    total_n_files = len(clct.get_files_in_study_period(path, years, months=months))
+    print("total number of files: ", total_n_files, flush=True)
+    files_processed = 0
+
+    for year in years:
+      for month in months:
+        for day in days:
+
+          path_day = f"{path}/{year}/{month:02}/{day:02}"
+          files = glob.glob(f"{path_day}/*.nc")
+          
+          if len(files) > 0:
+            for f in files:
+
+              if files_processed % 1000 == 0:
+                print(f"{files_processed}/{total_n_files}", flush=True)
+
+              # find hour from filename
+              _, end_dt = mwcch_read.get_start_and_end_timestrings_from_mwcch_filepath(f)
+              hour =  int(end_dt[:2])
+
+              # read in hail probability data
+              mwcch_data = mwcch_read.read(f).POH.values
+
+              # get number of nan entries:
+              N_nans = np.sum(np.isnan(mwcch_data))
+
+              # get total number of pixels
+              N_pixel = mwcch_data.shape[0] * mwcch_data.shape[1]
+
+              # calculate area percentage covered by overpass
+              area_perc = round(N_nans / N_pixel * 100)
+
+              # increase counter at specific sat, year, month and hail_level
+              count_overpass.N_overpasses.loc[dict(year=year, month=month, day=day, hour=hour, area_perc=area_perc)] += 1
+              
+              # count number of processed files
+              files_processed += 1
+
+    # print total number of files in this study period
+    print("total number of files processed: ", files_processed, flush=True)
+
+    # set non valid datetime to nan
+    count_overpass = set_nonvalid_datetimes_to_nan(count_overpass)
+
+    # save to file so that we don't need to run this again while creating the plots
+    # count_overpass.to_netcdf(counter_filename)
+    return count_overpass
+
 def set_nonvalid_datetimes_to_nan(count_overpass):
   
   for y in count_overpass.year.values:
@@ -325,62 +389,21 @@ def overpasses_per_daytime_and_hail_class(overpass_counter, hour_interval=1, yea
 
 
 # %%
-datapath = mwcch_read.MWCCH_PATH
+datapath = mwcch_read.MWCCH_MSGGRID_PATH
 print(datapath)
+print(os.path.exists(datapath))
 
-plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
+plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
 if not os.path.exists(plotpath):
     os.makedirs(plotpath)
 years = np.arange(1999, 2024, 1).astype(int)
 months = np.arange(4, 10, 1).astype(int)
-# all_files = clct.get_files_in_study_period(datapath, years, months)
-# print(len(all_files))
+all_files = clct.get_files_in_study_period(datapath, years, months)
+print(len(all_files))
 
-overpasses = count_overpasses_per_hailclass_and_hour(datapath, years, months,
-                                        output_filename="overpasses_per_hailclass_and_hour",
-                                        overwrite=False)
-
-# plot mean daily overpasses per year
-mean_daily_per_year = f"/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain/mean_daily_overpasses_per_year.png"
-daily_mean_overpasses_per_year(overpasses, output_name=mean_daily_per_year, figsize=(14, 7))
-
-# # plot overpasses per hour and year
-# overpass_per_hour_year = f"{plotpath}/sum_and_mean_overpasses_per_hour_and_year.png"
-# sum_and_mean_overpasses_per_hour_and_year(overpasses, output_name=overpass_per_hour_year)
-
-# # plot overpasses per hour and hail class frequency
-# for hour_interval in [1, 2, 3, 4, 6]:
-#   for year in [None, 2023, 2022, 2021]:
-#     year_suffix = "" if year is None else f"_year{year}"
-#     overpass_per_hour = f"{plotpath}/hail_overpasses_per_{hour_interval}hours{year_suffix}.png"
-#     overpasses_per_daytime_and_hail_class(overpasses, hour_interval=hour_interval, year=year, output_name=overpass_per_hour)
+overpass_area = count_overpasses_per_hour_and_area(datapath, years, months,
+                                       output_filename="overpasses_per_hour_and_covered_area",
+                                       overwrite=True)
 
 
-
-
-# hail_levels = np.array([0, .1, .15, .2, .25, .3, .36, .4, .5, .6, .7, .8, .9, 1])
-
-# # count the maximum hail occurrence in all files
-# hail_level_counter = count_max_mean_hail_levels(datapath, years, months, hail_levels, overwrite=False)
-# hail_class_counter = count_max_mean_hail_classes(datapath, years, months, overwrite=False)
-
-# # # plot occurrences of max hail per hail level
-# # hail_level_out = f"{plotpath}/max_mean_hail_distribution.png"
-# # barplot_occurrences_per_hail_level(hail_level_counter, output_name=hail_level_out, figsize=(10, 10), log=False)
-# # hail_level_log_out = f"{plotpath}/max_mean_hail_distribution_log.png"
-# # barplot_occurrences_per_hail_level(hail_level_counter, output_name=hail_level_log_out, figsize=(10, 10), log=True)
-
-# # plot occurrences of max hail per year and hail class
-# hail_class_out = f"{plotpath}/max_hail_class_distribution.png"
-# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out, 
-#                                 log=False, fraction=False)
-# hail_class_out_log = f"{plotpath}/max_hail_class_distribution_log.png"
-# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_log, 
-#                                 log=True, fraction=False)
-# hail_class_out_frac = f"{plotpath}/max_hail_class_distribution_frac.png"
-# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac, 
-#                                 log=False, fraction=True)
-# hail_class_out_frac_log = f"{plotpath}/max_hail_class_distribution_frac_log.png"
-# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac_log, 
-#                                 log=True, fraction=True)
 # %%
