@@ -1,9 +1,11 @@
 import glob
 import os
 import numpy as np
+import pandas as pd
 import sys
 sys.path.append("..")
 import helpers.datetime_helper as hlp
+from readers.read_MSG import MSG_PATH
 
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
     
@@ -36,17 +38,17 @@ def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=No
 
 def get_files_in_study_period(directory, years, months=None, days=None):
     
-    if years is not None and not isinstance(years, list):
+    if years is not None and not isinstance(years, (list, np.ndarray)):
         years = [years]
     if months is None:
         months = np.arange(1, 13, 1)
     else:
-        if not isinstance(months, list):
+        if not isinstance(months, (list, np.ndarray)):
             months = [months]
     if days is None:
         days = np.arange(1, 32, 1)
     else:
-        if not isinstance(days, list):
+        if not isinstance(days, (list, np.ndarray)):
             days = [days]
 
     all_files = []
@@ -99,21 +101,25 @@ def get_file_at_msg_timestamp(directory, timestamp, msg_res=15):
     for f in files_to_check:
         start_msg = int(dt[-4:])
         end_msg = start_msg + msg_res if (int(dt[-2:])+msg_res) < 60 else start_msg + (40+msg_res)
-        start_data = int(f.split('_')[-4][1:])
-        end_data = int(f.split('_')[-3][1:])
+        start_data = int(os.path.basename(f).split('_')[1][1:])
+        end_data = int(os.path.basename(f).split('_')[2][1:])
         if start_msg < start_data and start_data < end_msg \
             or start_msg < end_data and end_data < end_msg:
             closest_files.append(f)
 
     return closest_files
 
-def get_closest_msg_files(directory, timestamp, msg_res=15):
+def get_closest_MSG_file_and_timestamp(npdatetime, msg_res=15):
 
-    dt = hlp.get_datestring_from_npdatetime(timestamp)
+    # find closest MSG timestamp
+    round_dt = pd.Timestamp(npdatetime).round(f'{msg_res}min').to_datetime64()
 
-    closest_files = []
-    # TODO: find closest MSG timestamp to given timestamp
-   
-    return closest_files
+    # convert to string
+    dt_str = hlp.get_datestring_from_npdatetime(round_dt)
+
+    # get corresponding MSG file containing this timestamp
+    msg_file = f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc" #20220615-EXPATS-RG.nc
+
+    return msg_file, round_dt
 
 
