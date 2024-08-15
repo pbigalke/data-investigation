@@ -17,50 +17,77 @@ import readers.read_processed_MWCC_H as mwcch
 
 
 # %%
-def get_mwcch_color_levels(alpha=1.0, with_zero=False):
+def get_mwcch_color_levels(alpha=1.0, with_zero=False, mwcch_mode='poh'):
 
     levels = [0] if with_zero else []
     colors = [mpl.colors.to_rgba(mpl.colors.to_rgb('#F5F5F5'), alpha=alpha)] if with_zero else []
 
-    # define levels for contour plot and ...
-    levels.extend([.1, .15, .2, .25, .3, .36, .4, .5, .6, .7, .8, .9, 1])
-    # colors for colobar
-    colors.extend([
-                    # hail potential colors
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#E3E3E3'), alpha=alpha),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#C4C4C4'), alpha=alpha),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#B0B0B0'), alpha=alpha),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#9E9E9E'), alpha=alpha),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#858585'), alpha=alpha),
-                    # hail colors
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#98F5FF'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#00EEEE'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#008B8B'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#000080'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#00FF00'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#FFFF00'), alpha=1.0),
-                    mpl.colors.to_rgba(mpl.colors.to_rgb('#FF0000'), alpha=1.0),
-                    ])
+    if mwcch_mode == 'hail_class':
+        # define levels for contour plot and ...
+        levels.extend([.2, .36, .45, .6, 1])
+        # colors for colobar
+        colors.extend([
+                        # hail potential colors
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#C4C4C4'), alpha=alpha),
+                        # hail colors
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#98F5FF'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#008B8B'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#00FF00'), alpha=1.0),
+                        ])
+
+    else:
+        # define levels for contour plot and ...
+        levels.extend([.1, .15, .2, .25, .3, .36, .4, .5, .6, .7, .8, .9, 1])
+        # colors for colobar
+        colors.extend([
+                        # hail potential colors
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#E3E3E3'), alpha=alpha),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#C4C4C4'), alpha=alpha),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#B0B0B0'), alpha=alpha),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#9E9E9E'), alpha=alpha),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#858585'), alpha=alpha),
+                        # hail colors
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#98F5FF'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#00EEEE'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#008B8B'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#000080'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#00FF00'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#FFFF00'), alpha=1.0),
+                        mpl.colors.to_rgba(mpl.colors.to_rgb('#FF0000'), alpha=1.0),
+                        ])
 
     return levels, colors
 
-def draw_mwcch_colorbar(fig, ax, orientation='vertical'):
+def get_mwcch_colormap(alpha=1.0, with_zero=False, mwcch_mode='poh'):
+    levels, colors = get_mwcch_color_levels(alpha=alpha, with_zero=with_zero, mwcch_mode=mwcch_mode)
+    cmap = mpl.colors.ListedColormap(colors)
+    norm = mpl.colors.BoundaryNorm(levels, cmap.N)
+    return cmap, norm
 
-    levels, colors = get_mwcch_color_levels(with_zero=True)
+def draw_mwcch_colorbar(fig, ax, mwcch_mode='poh', orientation='vertical'):
+
+    levels, colors = get_mwcch_color_levels(with_zero=True, mwcch_mode=mwcch_mode)
     cmap = mpl.colors.ListedColormap(colors)
     norm = mpl.colors.BoundaryNorm(levels, cmap.N)
     cbar = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap, norm=norm),
                         cax=ax, orientation=orientation,
-                        spacing='uniform',
-                        #label='probability of hail',
-                        ticks=levels)
+                        spacing='uniform')
+    if mwcch_mode == 'hail_class':
+        yticks = [(levels[l+1] + levels[l]) / 2. for l in range(len(levels)-1)]
+        yticklabels = mwcch.get_hail_class(poh=None, type='name')
 
-    cbar.ax.set_yticklabels([f'{l:g}' for l in levels])
-    cbar.set_label('probability of hail', fontsize=LABELSIZE)
+    else:
+        yticks = levels
+        yticklabels = [f'{l:.2f}'for l in levels]
+
+    cbar.ax.set_yticks(yticks)
+    cbar.ax.set_yticklabels(yticklabels)
+    if mwcch_mode == 'poh':
+        cbar.set_label('probability of hail', fontsize=LABELSIZE)
     cbar.ax.tick_params(labelsize=TICKSIZE)
 
 # %%
-def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, alpha=1.0, projection=TRANSFORM):
+def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode="poh", alpha=1.0, projection=TRANSFORM, contour=True):
     """ plot the hail probability of MWCC-H
 
     Parameters
@@ -77,40 +104,62 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, alpha=1.0, projection=TRANSFO
         projection to display data in, by default ccrs.PlateCarree()
     cbar_loc : str, optional
         location of colorbar on axis, by default 'right'
-    """
-
-    levels, colors = get_mwcch_color_levels(alpha=alpha)
+    """    
     # mask nan values and plot hail probability contours
     z = np.ma.masked_invalid(mwcc_poh)
-    ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
-    ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
-def plot_mwcch_hailclass(ax, mwcc_lons, mwcc_lats, mwcc_hail_class, alpha=1.0, projection=TRANSFORM):
-    """ plot the hail classes of MWCC-H
+    # check which shape the data is coming in (regridded to MSG or in original points like manner)
+    if len(z.shape) == 1:
+        # get colors for contour lines
+        levels, colors = get_mwcch_color_levels(alpha=alpha, mwcch_mode=mwcch_mode)
+        # draw contour of irregular gridded data
+        ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
+        ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+    
+    elif len(z.shape) == 2:
+        if not contour:
+            # get colormap for pcolormesh
+            cmap, norm = get_mwcch_colormap(alpha=alpha, mwcch_mode=mwcch_mode)
+            # create 2d grid from lons and lats 1d-arrays
+            xs, ys = np.meshgrid(mwcc_lons, mwcc_lats)
+            # plot data with colormap
+            pc = ax.pcolormesh(xs, ys, z, cmap=cmap, norm=norm, alpha=alpha, transform=projection)
+        else:
+            # get colors for contour lines
+            levels, colors = get_mwcch_color_levels(alpha=alpha, mwcch_mode=mwcch_mode)
+            # get meshgrid
+            x, y = np.meshgrid(mwcc_lons, mwcc_lats)
+            # draw contours
+            ax.contour(x, y, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
+            ax.contourf(x, y, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
-    Parameters
-    ----------
-    ax : cartopy axis
-        current axis on which to plot
-    mwcc_lons : 1d-array {float}
-        longitude values of each pixel
-    mwcc_lats : 1d-array {float}
-        latitude values of each pixel
-    mwcc_hail_class : 1d-array {str}
-        hail class for each pixel
-    projection : cartopy projection, optional
-        projection to display data in, by default ccrs.PlateCarree()
-    cbar_loc : str, optional
-        location of colorbar on axis, by default 'right'
-    """
-    hail_classes = mwcch.get_hail_class()
-    levels, colors = get_mwcch_hail_class_color_levels(alpha=alpha)
-    # mask nan values and plot hail probability contours
-    z = np.ma.masked_invalid(mwcc_hail_class)
-    ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
-    ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
 
-def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats, 
+# def plot_mwcch_hailclass(ax, mwcc_lons, mwcc_lats, mwcc_hail_class, alpha=1.0, projection=TRANSFORM):
+#     """ plot the hail classes of MWCC-H
+
+#     Parameters
+#     ----------
+#     ax : cartopy axis
+#         current axis on which to plot
+#     mwcc_lons : 1d-array {float}
+#         longitude values of each pixel
+#     mwcc_lats : 1d-array {float}
+#         latitude values of each pixel
+#     mwcc_hail_class : 1d-array {str}
+#         hail class for each pixel
+#     projection : cartopy projection, optional
+#         projection to display data in, by default ccrs.PlateCarree()
+#     cbar_loc : str, optional
+#         location of colorbar on axis, by default 'right'
+#     """
+#     hail_classes = mwcch.get_hail_class()
+#     levels, colors = get_mwcch_hail_class_color_levels(alpha=alpha)
+#     # mask nan values and plot hail probability contours
+#     z = np.ma.masked_invalid(mwcc_hail_class)
+#     ax.tricontour(mwcc_lons, mwcc_lats, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
+#     ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+
+def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode="poh", domain=domain_expats, 
                         mark_points=None, draw_subdomains=None, 
                         projection=TRANSFORM, transform=TRANSFORM, 
                         transparent=True, title=None, path_out=None):
@@ -137,10 +186,10 @@ def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats,
     map_plt.draw_grid(ax_plot)
 
     # plot hail probability if not None
-    plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, projection=projection)
+    plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode=mwcch_mode, projection=projection)
 
     # draw MWCC-H colorbar
-    draw_mwcch_colorbar(fig, ax_cbar, orientation='vertical')
+    draw_mwcch_colorbar(fig, ax_cbar, mwcch_mode=mwcch_mode, orientation='vertical')
 
     # if points are given mark as crosses
     if isinstance(mark_points, list):
@@ -164,7 +213,7 @@ def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, domain=domain_expats,
         plt.show()
         plt.close()
 
-def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=None, mwcc_lats=None, mwcc_poh=None, 
+def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=None, mwcc_lats=None, mwcc_poh=None, mwcch_mode="poh",
                         vmin=None, vmax=None, alpha_mwcch=1.0, alpha_msg=1.0, clear_sky_thresh=None, draw_oro=False,
                         mark_points=None, draw_subdomains=None,
                         domain=domain_expats, projection=TRANSFORM, transform=TRANSFORM, 
@@ -235,10 +284,10 @@ def plot_mwcch_over_MSG(msg_lons, msg_lats, msg_data, channelname, mwcc_lons=Non
     # plot hail probability if not None
     if mwcc_poh is not None and mwcc_lons is not None and mwcc_lats is not None:
         # plot mwcc-h probability of hail
-        plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, alpha=alpha_mwcch, projection=projection)
+        plot_mwcch(ax_plot, mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode=mwcch_mode, alpha=alpha_mwcch, projection=projection)
 
     # draw MWCC-H colorbar
-    draw_mwcch_colorbar(fig, ax_cbar_mwcch, orientation='vertical')
+    draw_mwcch_colorbar(fig, ax_cbar_mwcch, mwcch_mode=mwcch_mode, orientation='vertical')
 
     # if points are given mark as crosses
     if isinstance(mark_points, list):
