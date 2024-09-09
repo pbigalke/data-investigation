@@ -123,7 +123,7 @@ def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
                     if count % 1000 == 0:
                         print(f"{count}", flush=True)
 
-    print("total number of files: ", count, flush=True)
+    print("total number of (new) files: ", count, flush=True)
 
 def regrid_and_save_file(mwcch_file, msg_lon, msg_lat, output_file):
     # read hail data
@@ -200,22 +200,30 @@ def regrid_file_to_MSG(points_lon, points_lat, points_values, msg_lon, msg_lat, 
 
     return new_data 
 
-def test_regridding_on_example():
+def test_regridding_on_example(check_existing=False):
     example = f"{mwcch_path_netcdf}/2022/06/05/20220605_S0518_E0522_SSMIS_f16.nc"
+    example_regrid = f"{mwcch_path_netcdf_msggrid}/2022/06/05/20220605_S0518_E0522_SSMIS_f16.nc"
     data = mwcch.read(example)
+
+    plot_path = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
 
     # get MSG lon and lat
     msg_lon, msg_lat = msg.get_lon_lat()
 
     # regrid data to MSG
-    regrid = regrid_file_to_MSG(data.lon.values, data.lat.values, data.POH.values, 
-                                msg_lon, msg_lat, method='linear')
+    if check_existing and os.path.exists(example_regrid):
+        regrid = mwcch.read(example)
+    else:
+        regrid = regrid_file_to_MSG(data.lon.values, data.lat.values, data.POH.values, 
+                                    msg_lon, msg_lat, method='linear')
 
     for mode in ['poh', 'hail_class']:
         # plot data
-        mwcch_plt.plot_mwcch_over_map(data.lon.values, data.lat.values, data.POH.values, mwcch_mode=mode)
+        mwcch_plt.plot_mwcch_over_map(data.lon.values, data.lat.values, data.POH.values, mwcch_mode=mode, 
+                                      title="original grid", path_out=os.path.join(plot_path, f"MWCCH_{mode}_original_grid.png"))
         # plot regridded data
-        mwcch_plt.plot_mwcch_over_map(msg_lon, msg_lat, regrid, mwcch_mode=mode)
+        mwcch_plt.plot_mwcch_over_map(msg_lon, msg_lat, regrid, mwcch_mode=mode, 
+                                      title="regridded to MSG grid", path_out=os.path.join(plot_path, f"MWCCH_{mode}_MSG_grid.png"))
 
 def add_hail_class_to_netcdf(mwcch_file):
     
@@ -387,8 +395,8 @@ if __name__ == "__main__":
     # main()
     # main_add_hail_class()
 
-    # regrid_all_MWCCH_data_to_MSG_grid(overwrite=True)
-    test_regridding_on_example()
+    regrid_all_MWCCH_data_to_MSG_grid(overwrite=False)
+    # test_regridding_on_example(check_existing=True)
 
     # path = "/net/merisi/pbigalke/data/MWCC-H/H2MED_data"
     # outpath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
