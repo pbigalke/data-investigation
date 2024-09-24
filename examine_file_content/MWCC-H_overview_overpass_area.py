@@ -132,29 +132,24 @@ def barplot_occurrences_per_area_fraction(overpass_area, output_name=None, figsi
   x_center = overpass_area.area_perc.values
   ax1.bar(x_center, y, -0.8, color="r", align="center")
 
-  # # add percentage written above bars
-  # percentages = y if fraction else area_counts / N_total * 100
-  # for p, perc in enumerate(percentages):
-  #   position = 0.1 if y[p] == 0 else y[p]
-  #   ax1.text(x_center[p], position, f'{perc:.2f}', fontsize=12, 
-  #             horizontalalignment='center', verticalalignment='bottom')
-
-  # add number of events of this hail class to cumulative bar plot
-  x_edge = np.arange(-0.5, len(x_center)+1, 1)
+  # make cumulative plot
+  x_edge = np.concatenate((x_center - 0.5, np.array([x_center[-1] + 0.5])))
   x_cumul = np.repeat(x_edge, 2)
-  y_cumul = np.concatenate((np.array([0]), np.repeat(np.cumsum(y), 2), np.array([0])))
-  y_cumul_back = np.concatenate((np.array([0]), np.repeat(np.cumsum(y[::-1])[::-1], 2), np.array([0])))
+  # get cumulative area counts
+  y_cumul = np.concatenate((np.array([0]), 
+                            np.repeat(np.cumsum(area_counts), 2), 
+                            np.array([0])))
+  # get cumulateve area counts backwards
+  y_cumul_back = np.concatenate((np.array([0]), 
+                                 np.repeat(np.cumsum(area_counts[::-1])[::-1], 2),
+                                 np.array([0])))
+  # plot
   ax2.plot(x_cumul, y_cumul, color="b", linestyle="--")
   ax2.plot(x_cumul, y_cumul_back, color="b", linestyle="-")
 
   # format x axes
-  ax1.set_xticks(x_center, labels=hail_counter.hail_class.values, rotation=45, ha='right')
   ax1.set_xlim(x_center[0]-0.5, x_center[-1] + 0.5)
-  ax1.grid()
-  ax2.set_xticks(x_edge, labels=get_hail_class_boundaries())
   ax2.set_xlim(x_edge[0], x_edge[-1])
-  ax2.set_ylim(0, y_cumsum[-1]*1.1)
-  ax2.grid()
 
   # format y axes
   for ax in [ax1, ax2]:
@@ -177,9 +172,6 @@ datapath = mwcch_read.MWCCH_MSGGRID_PATH
 print(datapath)
 print(os.path.exists(datapath))
 
-plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
-if not os.path.exists(plotpath):
-    os.makedirs(plotpath)
 years = np.arange(1999, 2024, 1).astype(int)
 months = np.arange(4, 10, 1).astype(int)
 
@@ -189,9 +181,24 @@ overpass_area = count_overpasses_per_hour_and_area(datapath, years, months,
                                        overwrite=False)
 
 
-
 # %%
-barplot_occurrences_per_area_fraction(overpass_area, output_name=None, figsize=(8, 8),
-                                          fraction=False, log=False)
+plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
+if not os.path.exists(plotpath):
+    os.makedirs(plotpath)
+
+# plot occurrences of max hail per year and hail class
+out = f"{plotpath}/area_covered_by_overpasses.png"
+barplot_occurrences_per_area_fraction(overpass_area, output_name=out, figsize=(8, 8),
+                                      fraction=False, log=False)
+out_log = f"{plotpath}/area_covered_by_overpasses_log.png"
+barplot_occurrences_per_area_fraction(overpass_area, output_name=out_log, figsize=(8, 8),
+                                      fraction=False, log=True)
+out_frac = f"{plotpath}/area_covered_by_overpasses_frac.png"
+barplot_occurrences_per_area_fraction(overpass_area, output_name=out_frac, figsize=(8, 8),
+                                      fraction=True, log=False)
+out_frac_log = f"{plotpath}/area_covered_by_overpasses_frac_log.png"
+barplot_occurrences_per_area_fraction(overpass_area, output_name=out_frac_log, figsize=(8, 8),
+                                      fraction=True, log=True)
+
 
 # %%
