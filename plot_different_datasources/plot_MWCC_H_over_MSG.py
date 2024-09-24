@@ -15,7 +15,7 @@ import matching_data.collect_matching_files as match
 import plotting.plot_MWCC_H as mwcc_plt
 
 # %%
-def main_loop_over_MSG():
+def main_loop_over_MSG(mwcch_mode="poh"):
 
     # mwcch_path = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
     mwcch_path_regrid = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf_MSG_grid"
@@ -38,7 +38,7 @@ def main_loop_over_MSG():
     print(f"{len(all_msg_files)} MSG files and {len(all_mwcch_files)} MWCC-H files")
 
     # define channels to plot
-    channels = ["IR_108"]#"WV_062-IR_108", "IR_108", "IR_087"]
+    channels = ["WV_062-IR_108"]#"WV_062-IR_108", "IR_108", "IR_087"]
 
     # loop over channels
     for channel in channels:
@@ -85,12 +85,13 @@ def main_loop_over_MSG():
                 msg_tb_t = msg_tb.sel(time=timestamp).values
 
                 # define output location and file name
-                out_name = f'{path_channel}/{dt}_msg_{channel}_poh{sat}.png'
+                out_name = f'{path_channel}/{dt}_msg_{channel}_{mwcch_mode}{sat}.png'
 
                 # plot msg and poh
                 title = f'{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
                 mwcc_plt.plot_mwcch_over_MSG(msg_lons, msg_lats, msg_tb_t, channel, 
-                                            mwcc_lons=mwcc_lons, mwcc_lats=mwcc_lats, mwcc_poh=mwcc_poh, 
+                                            mwcc_lons=mwcc_lons, mwcc_lats=mwcc_lats, mwcc_poh=mwcc_poh,
+                                            mwcch_mode=mwcch_mode,
                                             vmin=min_val, vmax=max_val, alpha_mwcch=0.6, 
                                             domain=domain, title=title, path_out=out_name)
     
@@ -116,7 +117,7 @@ def main_loop_over_MWCCH(regrid=True):
     all_mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
 
     # define channels to plot
-    channels = ["IR_108"]#"WV_062-IR_108", "IR_108", "IR_087"]
+    channels = ["WV_062-IR_108"]#"WV_062-IR_108", "IR_108", "IR_087"]
 
     # loop over MWCCH files
     for mwcch_file in all_mwcch_files:
@@ -157,8 +158,8 @@ def main_loop_over_MWCCH(regrid=True):
                 msg_tb = data_msg[channel]
 
             # get range of values
-            min_val = np.nanpercentile(msg_tb.values, 1) # np.nanmin(msg_tb.values)
-            max_val = np.nanpercentile(msg_tb.values, 99) # np.nanmax(msg_tb.values)
+            min_val = -60 #np.nanpercentile(msg_tb.values, 1) # np.nanmin(msg_tb.values)
+            max_val = 5 # np.nanpercentile(msg_tb.values, 99) # np.nanmax(msg_tb.values)
 
             # get data of this timestamp
             msg_tb_t = msg_tb.sel(time=msg_dt).values
@@ -177,6 +178,6 @@ def main_loop_over_MWCCH(regrid=True):
     
 # %%
 if __name__ == "__main__":
-    main_loop_over_MWCCH(regrid=False)
+    main_loop_over_MWCCH()
 
 # %%
