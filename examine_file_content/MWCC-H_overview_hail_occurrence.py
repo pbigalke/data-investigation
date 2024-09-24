@@ -305,33 +305,39 @@ def plot_occurrences_per_hail_class(hail_counter, output_name=None, figsize=(10,
   N_total = hail_counter.N_max_poh.sum().values
 
   # get total amount of files per hail class
-  hail_class_counts = hail_counter.N_max_poh.sum(dim=["sat", "year", "month"]).values
+  hail_class_counts = hail_counter.N_max_poh.sum(dim=["sat", "year", "month"])
+  for h, hail in enumerate(hail_class_counts.hail_class.values):
+    
+    # get total number and percentage of overpasses containing this hail class
+    n_class = hail_class_counts.sel(hail_class=hail).values
+    perc_class = n_class / N_total * 100 
+    if fraction:
+      n_class = perc_class
+    
+    # plot bar for this class
+    ax1.bar(h, n_class, -0.8, color=hail_class_colors[hail], align="center")
 
-  # add number of events of this hail class to bar plot
-  x_center = np.arange(0, len(hail_counter.hail_class), 1)
-  y_max = hail_class_counts / N_total * 100 if fraction else hail_class_counts
-  ax1.bar(x_center, y_max, -0.8, color="r", align="center")
-
-  # add percentage above max poh bars
-  perc_max = hail_class_counts / N_total * 100
-  for p, perc in enumerate(perc_max):
-    position = 1 if y_max[p] == 0 else y_max[p]
-    ax1.text(x_center[p], position, f'{perc:.2f}', fontsize=12, 
+    # add percentage above max poh bars
+    position = 1 if n_class == 0 else n_class
+    ax1.text(h, position, f'{perc_class:.2f}', fontsize=12, 
               horizontalalignment='center', verticalalignment='bottom')
 
   # add number of events of this hail class to cumulative bar plot
   x_edge = np.arange(0, len(hail_counter.hail_class)+1, 1)
   x_cumul = np.concatenate((x_edge[:1], np.repeat(x_edge[1:-1], 2), x_edge[-1:]))
-  y_cumul = np.repeat(np.cumsum(y_max), 2)
-  y_cumul_back = np.repeat(np.cumsum(y_max[::-1])[::-1], 2)
+  y_cumul = np.repeat(np.cumsum(hail_class_counts.values), 2)
+  y_cumul_back = np.repeat(np.cumsum(hail_class_counts.values[::-1])[::-1], 2)
   ax2.plot(x_cumul, y_cumul, color="b", linestyle="--")
   ax2.plot(x_cumul, y_cumul_back, color="b", linestyle="-")
 
   # format x axes
+  x_center = np.arange(0, len(hail_counter.hail_class), 1)
   ax1.set_xticks(x_center, labels=hail_counter.hail_class.values, rotation=45, ha='right')
   ax1.set_xlim(x_center[0]-0.5, x_center[-1] + 0.5)
+  #
   ax2.set_xticks(x_edge, labels=get_hail_class_boundaries())
   ax2.set_xlim(x_edge[0], x_edge[-1])
+  ax2.set_xlabel("hail probability")
 
   # format y axes
   for ax in [ax1, ax2]:
@@ -375,15 +381,15 @@ hail_class_counter = count_max_mean_hail_classes(datapath, years, months, overwr
 
 # plot occurrences of max hail per year and hail class
 hail_class_out = f"{plotpath}/max_hail_class_distribution.png"
-plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out, 
+plot_occurrences_per_hail_class(hail_class_counter, output_name=None, #hail_class_out, 
                                 log=False, fraction=False)
-hail_class_out_log = f"{plotpath}/max_hail_class_distribution_log.png"
-plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_log, 
-                                log=True, fraction=False)
-hail_class_out_frac = f"{plotpath}/max_hail_class_distribution_frac.png"
-plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac, 
-                                log=False, fraction=True)
-hail_class_out_frac_log = f"{plotpath}/max_hail_class_distribution_frac_log.png"
-plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac_log, 
-                                log=True, fraction=True)
+# hail_class_out_log = f"{plotpath}/max_hail_class_distribution_log.png"
+# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_log, 
+#                                 log=True, fraction=False)
+# hail_class_out_frac = f"{plotpath}/max_hail_class_distribution_frac.png"
+# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac, 
+#                                 log=False, fraction=True)
+# hail_class_out_frac_log = f"{plotpath}/max_hail_class_distribution_frac_log.png"
+# plot_occurrences_per_hail_class(hail_class_counter, output_name=hail_class_out_frac_log, 
+#                                 log=True, fraction=True)
 # %%
