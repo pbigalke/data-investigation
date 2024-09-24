@@ -131,7 +131,8 @@ def get_crop_extent_from_center_choords(msg_lon, msg_lat, loc_lon, loc_lat, crop
 def get_crop_extent_over_maxhailarea(msg_timeseries, mwcch_data, cropsize):
 
     # get max hail class in mwcch data
-    max_hail_class = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values))
+    max_hail_class = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values), type="name")
+    max_hail_class_number = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values), type="number")
 
     # if no hail is present TODO: implement solution for this case
     if max_hail_class == "no_hail":
@@ -140,7 +141,26 @@ def get_crop_extent_over_maxhailarea(msg_timeseries, mwcch_data, cropsize):
         return None
     
     # mask mwcc-h data where maximum hail class occurs
-    masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class)
+    if isinstance(mwcch_data.hail_class.values[0], str):
+        masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class)
+    else:
+        masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class_number)
+
+    # calculate center of mass for variable
+    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.POH)
+    
+    # get extent of crop over hail area
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
+                                                                         cg_lon, cg_lat, cropsize)
+    return cg_lon.values, cg_lat.values, minlon, maxlon, minlat, maxlat
+
+def get_crop_extent_over_overpassarea(msg_timeseries, mwcch_data, cropsize):
+    
+    # mask mwcc-h data where not NaN
+    masked_data = mwcch_data.where(mwcch_data.poh != np.nan)
+
+    print(masked_data)
+    return
 
     # calculate center of mass for variable
     cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.POH)
