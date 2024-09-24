@@ -108,7 +108,7 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode="poh", alpha=1.0, 
     # mask nan values and plot hail probability contours
     z = np.ma.masked_invalid(mwcc_poh)
 
-    # check which shape the data is coming in (regridded to MSG or in original points like manner)
+    # check which shape the data is coming in (regridded to MSG or in original point like manner)
     if len(z.shape) == 1:
         # get colors for contour lines
         levels, colors = get_mwcch_color_levels(alpha=alpha, mwcch_mode=mwcch_mode)
@@ -117,21 +117,32 @@ def plot_mwcch(ax, mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode="poh", alpha=1.0, 
         ax.tricontourf(mwcc_lons, mwcc_lats, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
     
     elif len(z.shape) == 2:
+        # create 2d grid from lons and lats 1d-arrays
+        xs, ys = np.meshgrid(mwcc_lons, mwcc_lats)
+
         if not contour:
             # get colormap for pcolormesh
             cmap, norm = get_mwcch_colormap(alpha=alpha, mwcch_mode=mwcch_mode)
-            # create 2d grid from lons and lats 1d-arrays
-            xs, ys = np.meshgrid(mwcc_lons, mwcc_lats)
             # plot data with colormap
-            pc = ax.pcolormesh(xs, ys, z, cmap=cmap, norm=norm, alpha=alpha, transform=projection)
+            ax.pcolormesh(xs, ys, z, cmap=cmap, norm=norm, alpha=alpha, transform=projection)
         else:
             # get colors for contour lines
             levels, colors = get_mwcch_color_levels(alpha=alpha, mwcch_mode=mwcch_mode)
-            # get meshgrid
-            x, y = np.meshgrid(mwcc_lons, mwcc_lats)
             # draw contours
-            ax.contour(x, y, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
-            ax.contourf(x, y, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+            ax.contour(xs, ys, z, levels=levels, linewidths=0.5, colors='k', projection=projection, vmin=0, vmax=1)
+            ax.contourf(xs, ys, z, levels=levels, colors=colors, projection=projection, vmin=0, vmax=1)
+        
+        # TODO: implement shading outside of overpass
+        # # shade area outside of overpass
+        # # mask non-nan values and plot hail probability contours
+        # mask_valid = mwcc_poh.notnull().POH.values
+        # overpass = np.ones(mwcc_poh.shape)
+        # overpass_masked = np.ma.masked_array(overpass, mask=mask_valid)
+        # # shade area outside of overpass
+        # ax.pcolormesh(xs, ys, overpass_masked, 
+        #               cmap=mpl.colors.ListedColormap(['w']), 
+        #               alpha=0.5, transform=projection)
+
 
 def plot_mwcch_over_map(mwcc_lons, mwcc_lats, mwcc_poh, mwcch_mode="poh", domain=domain_expats, 
                         mark_points=None, draw_subdomains=None, 
