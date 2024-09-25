@@ -1,1 +1,4 @@
 output/*
+
+# all interactive python shells of VS code Jupyter extension
+*.pyc
