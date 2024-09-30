@@ -80,12 +80,12 @@ def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
     #all_files = sorted(glob.glob(f"{original_path}/*/*/*/*.nc"))
     output_path = mwcch_path_netcdf_msggrid
 
-    # years = np.arange(1999, 2024, 1) #[2022]
-    # months = np.arange(4, 10, 1) #[6]
-    # days = np.arange(1, 32, 1) #[5]
-    years = [2022]
-    months = [6]
-    days = [5]
+    years = np.arange(1999, 2024, 1) #[2022]
+    months = np.arange(4, 10, 1) #[6]
+    days = np.arange(1, 32, 1) #[5]
+    # years = [2022]
+    # months = [6]
+    # days = [5]
 
     # get MSG lon and lat
     msg_lon, msg_lat = msg.get_lon_lat()
@@ -104,8 +104,8 @@ def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
                 files_day = match.get_files_in_study_period(original_path, year, month, day)
                 
                 # loop over files
-                for fl in files_day[:1]:
-                    print(fl)
+                for fl in files_day:
+
                     # generate new filename
                     start_dt, end_dt = mwcch.get_start_and_end_datetimes_from_mwcch_filepath(fl)
                     regrid_file = mwcch.generate_mwcch_filepath(output_path, start_dt, end_dt, 
@@ -127,7 +127,7 @@ def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
     print("total number of (new) files: ", count, flush=True)
 
 def regrid_and_save_file(mwcch_file, msg_lon, msg_lat, output_file):
-    print("regrid and save")
+
     # read hail data
     data = mwcch.read(mwcch_file)
 
@@ -148,42 +148,18 @@ def regrid_and_save_file(mwcch_file, msg_lon, msg_lat, output_file):
         # loop over variables, to regrid and save to new dataset
         vars = [k for k in data.keys() if k not in ['lon', 'lat', 'hail_class']]
         for var in vars:
-            print("----", var)
             try:
                 # regrid to MSG grid
                 var_regrid = regrid_file_to_MSG(data.lon.values, data.lat.values, 
-                                                data[var].values, msg_lon, msg_lat, 
-                                                method='nearest')
+                                                data[var].values, msg_lon, msg_lat)#, 
+                                                #method='nearest')
+
+                # make sure to keep correct datetime type
+                if var == 'datetime':
+                    var_regrid = var_regrid.astype('datetime64[ns]')
+
                 # add to new dataset
                 mwcch_regrid[var] = (['lat', 'lon'], var_regrid)
-                
-                # test how to change to datetime
-                print(mwcch_regrid[var])
-                var_type = type(data[var].values[0])
-                print(var_type)
-                if var == 'datetime':
-                    # mwcch_regrid[var].update({var: pd.to_datetime(mwcch_regrid[var] , unit='ns')})
-                    # mwcch_regrid[var] = (['lat', 'lon'], pd.to_datetime(mwcch_regrid["datetime"], unit='ns'))
-                    # mwcch_regrid[var].copy(data=pd.to_datetime(mwcch_regrid["datetime"], unit='ns'))
-                    mwcch_regrid[var].copy(data=np.datetime64(datetime.datetime.utcfromtimestamp(mwcch_regrid["datetime"])))
-                    
-
-                    
-                    # mwcch_regrid.assign(datetime=pd.to_datetime(mwcch_regrid["datetime"], unit='ns'))
-
-                    # mwcch_regrid.assign({"datetime": lambda ds_: ds_["datetime"].astype(np.datetime64)})
-
-                    # mwcch_regrid[var] = pd.to_datetime(mwcch_regrid[var] , unit='ns')
-                    # mwcch_regrid[var] = mwcch_regrid[var].astype(var_type)
-                else:
-                    mwcch_regrid[var] = mwcch_regrid[var].astype(var_type)
-                print(mwcch_regrid[var])
-      
-                # if var == "datetime":
-                #     after_regrid = np.unique(var_regrid)
-                #     print(after_regrid.shape, after_regrid)
-                #     print(pd.to_datetime(after_regrid))
-                # print(np.unique(var_regrid.astype(var_type)
 
             except scipy.spatial._qhull.QhullError:
                 print("error in input data:", mwcch_file, flush=True)
@@ -192,17 +168,17 @@ def regrid_and_save_file(mwcch_file, msg_lon, msg_lat, output_file):
                 print("data values", data[var].values.shape, data[var], flush=True)
                 return
         
-        # # add hail class
-        # hail_class_arr = mwcch.get_hail_class(poh=mwcch_regrid["POH"].values, type="number")
-        # hail_classes = mwcch.get_hail_class(poh=None, type="number")
-        # hail_classes_names = mwcch.get_hail_class(poh=None, type="name")
-        # description = "hail classes are defined as follows: "
-        # for h in hail_classes:
-        #     description += f"\n{h}: {hail_classes_names[h]}"
-        # mwcch_regrid["hail_class"] = (['lat', 'lon'], hail_class_arr, {"description": description})
+        # add hail class
+        hail_class_arr = mwcch.get_hail_class(poh=mwcch_regrid["POH"].values, type="number")
+        hail_classes = mwcch.get_hail_class(poh=None, type="number")
+        hail_classes_names = mwcch.get_hail_class(poh=None, type="name")
+        description = "hail classes are defined as follows: "
+        for h in hail_classes:
+            description += f"\n{h}: {hail_classes_names[h]}"
+        mwcch_regrid["hail_class"] = (['lat', 'lon'], hail_class_arr, {"description": description})
 
         # save as netcdf file
-        #mwcch_regrid.to_netcdf(output_file)
+        mwcch_regrid.to_netcdf(output_file)
     return
 
 def regrid_file_to_MSG(points_lon, points_lat, points_values, msg_lon, msg_lat, method='linear'):
