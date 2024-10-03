@@ -15,6 +15,20 @@ import plotting.plot_orography_and_map as map_plt
 import plotting.plot_MSG as msg_plt
 import readers.read_processed_MWCC_H as mwcch
 
+hail_class_colors = {'no_hail': 'whitesmoke', 
+                    'hail_potential': 'lightgrey', 
+                    'hail_initiation_graupel': 'cyan', 
+                    'large_hail': 'darkcyan',
+                    'super_hail': 'lime'}
+hail_class_colors_dict = {'no_hail': mpl.cm.get_cmap('Greys')(0.2), 
+                        'hail_potential': mpl.cm.get_cmap('Greys')(0.3), 
+                        'hail_initiation_graupel': mpl.cm.get_cmap('cool')(0), 
+                        'large_hail': mpl.cm.get_cmap('cool')(0.5),
+                        'super_hail': mpl.cm.get_cmap('cool')(0.9)}
+hail_class_colors_list = [mpl.cm.get_cmap('Greys')(0.2), mpl.cm.get_cmap('Greys')(0.3), 
+                          mpl.cm.get_cmap('cool')(0), mpl.cm.get_cmap('cool')(0.5), 
+                          mpl.cm.get_cmap('cool')(0.9)]
+
 
 # %%
 def get_mwcch_color_levels(alpha=1.0, with_zero=False, mwcch_mode='poh'):
