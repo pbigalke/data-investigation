@@ -5,7 +5,6 @@ import pandas as pd
 import sys
 sys.path.append("..")
 import helpers.datetime_helper as hlp
-import readers.read_MSG as msg_read
 
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
     
