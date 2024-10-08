@@ -1,6 +1,9 @@
 # %%
 import xarray as xr
 import os
+import sys
+sys.path.append('..')
+import helpers.datetime_helper as hlp
 
 MSG_PATH = "/data/sat/msg/netcdf/parallax"
 
@@ -25,4 +28,20 @@ def get_lon_lat():
         lon = dataset.lon.values
         lat = dataset.lat.values
     return lon, lat
+
+def get_MSG_files_from_timestamps(msg_dt):
+    # check if input is list
+    if not isinstance(msg_dt, list):
+        msg_dt = [msg_dt]
+    
+    msg_files = []
+    # loop over timestamps and get corresponding MSG file
+    for dt in msg_dt:
+        # convert to string
+        dt_str = hlp.get_datestring_from_npdatetime(dt)
+
+        # get corresponding MSG file containing this timestamp
+        msg_files.append(f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc") #20220615-EXPATS-RG.nc
+    
+    return msg_files
 
