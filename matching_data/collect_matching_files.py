@@ -109,17 +109,39 @@ def get_file_at_msg_timestamp(directory, timestamp, msg_res=15):
 
     return closest_files
 
-def get_closest_MSG_file_and_timestamp(npdatetime, msg_res=15):
+def get_closest_MSG_files_and_timestamps(npdatetime, which="closest", msg_res=15):
 
-    # find closest MSG timestamp
-    round_dt = pd.Timestamp(npdatetime).round(f'{msg_res}min').to_datetime64()
+    # lists to store closest or neighboring MSG timestamps and corresponding files
+    msg_dt = []
+    msg_files = []
 
-    # convert to string
-    dt_str = hlp.get_datestring_from_npdatetime(round_dt)
+    if which == "previous" or which == "both":
+        # Round down to the nearest 15-minute interval
+        rounded_down = pd.Timestamp(npdatetime).floor(f'{msg_res}T')
 
-    # get corresponding MSG file containing this timestamp
-    msg_file = f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc" #20220615-EXPATS-RG.nc
+        # Convert back to np.datetime64 if needed
+        msg_dt.append(rounded_down.to_datetime64())
 
-    return msg_file, round_dt
+    elif which == "following" or which == "both":
+        # Round up to the nearest 15-minute interval
+        rounded_up = pd.Timestamp(npdatetime).ceil(f'{msg_res}T')
+
+        # Convert back to np.datetime64 if needed
+        msg_dt.append(rounded_up.to_datetime64())
+    
+    else:
+        # find closest MSG timestamp
+        round_closest = pd.Timestamp(npdatetime).round(f'{msg_res}min')
+        msg_dt.append(round_closest.to_datetime64())
+
+    # loop over timestamps and get corresponding MSG file
+    for dt in msg_dt:
+        # convert to string
+        dt_str = hlp.get_datestring_from_npdatetime(dt)
+
+        # get corresponding MSG file containing this timestamp
+        msg_files.append(f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc") #20220615-EXPATS-RG.nc
+
+    return msg_files, msg_dt
 
 
