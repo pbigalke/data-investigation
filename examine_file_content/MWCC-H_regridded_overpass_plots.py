@@ -59,7 +59,7 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
   bottom = np.zeros(overpass_hailclass_area.area_perc.shape)
 
   # loop over hail classes and fill in barplots
-  for h in overpass_area.hail_class.values:
+  for h in overpass_hailclass_area.hail_class.values:
 
     # get counts only for this hail_class
     area_counts = overpass_hailclass_area.sel(hail_class=h).values
@@ -69,7 +69,7 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
 
     # bar plot of number of overpasses per area fraction
     y = area_counts / N_total * 100 if fraction else area_counts
-    x_center = overpass_area.area_perc.values
+    x_center = overpass_hailclass_area.area_perc.values
     ax.bar(x_center, y, -0.8, color=color, align="center", bottom=bottom, label=hail_class_names[h])
 
     # set bottom for next hail_class
