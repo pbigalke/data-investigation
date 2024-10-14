@@ -2,8 +2,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy import ndimage as ndi
-import glob
+import datetime
 import os
 import sys
 sys.path.append('..')
@@ -11,59 +10,55 @@ import readers.read_MSG as msg_read
 import readers.read_processed_MWCC_H as mwcch_read
 import matching_data.collect_matching_files as match
 import helpers.datetime_helper as hlp
-import plotting.plot_MWCC_H as mwcc_plt
-from config.domain_info import domain_expats
 
 
 # %%
-def get_neighboring_datestring_from_npdatetime(npdatetime, which="both"):
+# def get_neighboring_datestring_from_npdatetime(npdatetime, which="both"):
 
-    dt = hlp.get_datestring_from_npdatetime(npdatetime)
+#     dt = hlp.get_datestring_from_npdatetime(npdatetime)
 
-    if which == "previous":
-        prev_dt = hlp.get_datestring_from_npdatetime(npdatetime - pd.DateOffset(days=1))
-        return [prev_dt, dt]
-    elif which == "following":
-        foll_dt = hlp.get_datestring_from_npdatetime(npdatetime + pd.DateOffset(days=1))
-        return [dt, foll_dt]
-    else:
-        prev_dt = hlp.get_datestring_from_npdatetime(npdatetime - pd.DateOffset(days=1))
-        foll_dt = hlp.get_datestring_from_npdatetime(npdatetime + pd.DateOffset(days=1))
-        return [prev_dt, dt, foll_dt]
+#     if which == "previous":
+#         prev_dt = hlp.get_datestring_from_npdatetime(npdatetime - pd.DateOffset(days=1))
+#         return [prev_dt, dt]
+#     elif which == "following":
+#         foll_dt = hlp.get_datestring_from_npdatetime(npdatetime + pd.DateOffset(days=1))
+#         return [dt, foll_dt]
+#     elif which == "closest":
+#         get_closest_MSG_file_and_timestamp(npdatetime, msg_res=15)
+#     else:
+#         prev_dt = hlp.get_datestring_from_npdatetime(npdatetime - pd.DateOffset(days=1))
+#         foll_dt = hlp.get_datestring_from_npdatetime(npdatetime + pd.DateOffset(days=1))
+#         return [prev_dt, dt, foll_dt]
 
+# def get_closest_msg_file(directory, timestamps):
 
-def get_corresponding_msg_files(directory, timestamps):
-
-    msg_files = []
-    for ts in timestamps:
-        dt = hlp.get_datestring_from_npdatetime(ts)
-        msg_files.append(f"{directory}/{dt[:4]}/{dt[4:6]}/{dt[:8]}-EXPATS-RG.nc")
-    return msg_files
+#     msg_files = []
+#     for ts in timestamps:
+#         dt = hlp.get_datestring_from_npdatetime(ts)
+#         msg_files.append(f"{directory}/{dt[:4]}/{dt[4:6]}/{dt[:8]}-EXPATS-RG.nc")
+#     return msg_files
     
+# def get_closest_msg_timestamp(npdatetime, msg_res=15):
 
-def get_closest_msg_timestamp(npdatetime, msg_res=15):
+#     round_dt = npdatetime.round(f'{msg_res}min')
+#     print(round_dt)
+#     return
 
-    round_dt = npdatetime.round(f'{msg_res}min')
-    print(round_dt)
-    return
+def get_MSG_timeseries(overpass_end_time, msg_res, n_frames):
 
-def add_hail_class_to_netcdf(mwcch_file):
-    
-    with xr.open_dataset(mwcch_file) as ds:
-        mwcch_data = ds.load()
-    mwcch_data['hail_class'] = ('index', mwcch_read.get_hail_class(mwcch_data.POH.values))
-    mwcch_data.to_netcdf(mwcch_file)
+    # get MSG timestamp following the overpass end time
+    last_msg_dt = match.get_closest_MSG_timestamps(overpass_end_time, 
+                                                   which="following",
+                                                   msg_res=msg_res)
 
-def get_MSG_timeseries(msg_path, last_timestamp, msg_res, n_frames):
-    # get closest MSG timestamp from overpass end time
-    last_frame = pd.Timestamp(last_timestamp).round(f'{msg_res}min').to_datetime64()
-
-    # create MSG time series of given length ending in overpass
-    time_series = last_frame - pd.to_timedelta(np.arange(n_frames)[::-1]*msg_res, 'm')
+    # extent by previous timestamps to receive MSG time series of given length ending in overpass
+    time_series_dt = last_msg_dt - pd.to_timedelta(np.arange(n_frames)[::-1]*msg_res, 'm')
 
     # find MSG daily files that this time series covers
-    days_in_time_series = time_series.normalize().unique().values
-    msg_files = get_corresponding_msg_files(msg_path, days_in_time_series)
+    days_in_time_series = time_series_dt.normalize().unique().values
+    print(days_in_time_series)
+    return
+    msg_files = msg_read.get_MSG_files_from_timestamps(days_in_time_series)
 
     msg_time_series = []
     # loop over MSG files
@@ -80,6 +75,7 @@ def get_MSG_timeseries(msg_path, last_timestamp, msg_res, n_frames):
     msg_time_series = xr.merge(msg_time_series)
     return msg_time_series
 
+# %%
 def get_center_of_mass_for_variable(lon, lat, variable):
     cg_lat = np.sum(lat * variable) / np.sum(variable)
     cg_lon = np.sum(lon * variable) / np.sum(variable)
@@ -243,8 +239,7 @@ def crop_and_save_MSG_timeseries(msg_timeseries, mwcch_data, cropsize, filepath,
 # %%
 def construct_MSG_timeseries(recenter=None):
     # mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-    msg_path = msg_read.MSG_PATH
-    mwcch_path = mwcch_read.MWCCH_PATH
+    mwcch_path = mwcch_read.MWCCH_MSGGRID_PATH
     
     recenter_suffix = "" if recenter is None else f"_recentered_{recenter}"
     output_path = f"/net/merisi/pbigalke/data/MSG_timeseries_maxhailarea{recenter_suffix}"
@@ -264,35 +259,41 @@ def construct_MSG_timeseries(recenter=None):
     # ---------------------------------------------------------------------
     # load all mwcc-h files in study period
     mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
+    print(mwcch_files[0])
+    print(mwcch_files[-1])
+    print(chunk_files_by_timerange(mwcch_files, n_frames, msg_res=msg_res))
+    return
 
     # loop over mwcch files
     for f in mwcch_files:
         print(f, flush=True)
 
         # ------------------------------------------------------------ read MWCC-H
-        # read in mwcc_file
+        # read in mwcch_file
         mwcch_data = mwcch_read.read(f)
 
-        # ------------------------------------------------------------ get label
-        # set label to maximum hail class within domain
-        label = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values))
-        print(label, flush=True)
-        if label == "no_hail":
-            continue
+        # # ------------------------------------------------------------ get label
+        # # set label to maximum hail class within domain
+        # label = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values))
+        # print(label, flush=True)
+        # if label == "no_hail":
+        #     continue
 
-        # define output path for this label
-        path_label = os.path.join(output_path, label)
-        if not os.path.exists(path_label):
-            os.makedirs(path_label)
+        # # define output path for this label
+        # path_label = os.path.join(output_path, label)
+        # if not os.path.exists(path_label):
+        #     os.makedirs(path_label)
            
         # ------------------------------------------------------------ create MSG time serie
         # read in MSG time series ending in mwcc-h timestamp
 
         # get end time of overpass
-        mwcch_end = mwcch_data.datetime.values[-1]
+        mwcch_end = mwcch_data.end_scan
+        print(mwcch_end)
 
         # get corresponding MSG time series
-        msg_timeseries = get_MSG_timeseries(msg_path, mwcch_end, msg_res, n_frames)
+        msg_timeseries = get_MSG_timeseries(mwcch_end, msg_res, n_frames)
+        return
 
         # add global attribute about 
 
@@ -302,11 +303,71 @@ def construct_MSG_timeseries(recenter=None):
 
         # crop and save timeseries over hail event
         crop_and_save_MSG_timeseries(msg_timeseries, mwcch_data, cropsize, filepath, recenter=recenter)
-        
-   
+
+
+def chunk_files_by_timerange(files, n_frames, msg_res=15):
+
+    # Parse timestamps of scanning end time
+    files_with_timestamps = [(file, mwcch_read.get_scan_datetime_from_mwcch_filepath(file, which="end")) for file in files]
+
+    # sort files by timestamp in descending order
+    files_with_timestamps.sort(key=lambda x: x[1], reverse=True)
+
+    # Chunk files based on the specified time range
+    chunks = []
+    current_chunk = []
+    current_start_time = None
+
+    for file, timestamp in files_with_timestamps:
+        print()
+        print("------------------------------------", timestamp)
+        if current_start_time is None:
+            current_start_time = match.get_closest_MSG_timestamps(timestamp, 
+                                                                  which="following", 
+                                                                  msg_res=msg_res)
+            print("current start time", current_start_time)
+            current_chunk.append(file)
+        elif (current_start_time - timestamp).astype('timedelta64[m]').astype(int) <= n_frames*msg_res:
+            current_chunk.append(file)
+            print("append file to current chunk:", os.path.basename(file))
+        else:
+            print("file is out of bound for previous chunk.")
+            chunks.append(current_chunk)
+            print("append chunk to final list:")
+            for f in current_chunk:
+                print("....", os.path.basename(f))
+            current_chunk = [file]
+            print("start new chunk with this file:", os.path.basename(file))
+            current_start_time = match.get_closest_MSG_timestamps(timestamp, 
+                                                                  which="following", 
+                                                                  msg_res=msg_res)
+            print("current start time", current_start_time)
+
+    if current_chunk:
+        print("add last chunk at the end", current_chunk)
+        chunks.append(current_chunk)
+
+    return chunks
+
+# # Example usage
+# files = [
+#     '20220605_0340_SSMIS_f16.nc',
+#     '20220605_1017_MHS_meto03.nc',
+#     '20220605_1820_SSMIS_f17.nc',
+#     '20220605_0341_SSMIS_f16.nc',
+#     '20220605_1018_MHS_meto03.nc',
+#     '20220605_1821_SSMIS_f17.nc'
+# ]
+
+# time_range_minutes = 60  # Define your time range in minutes
+# chunks = chunk_files_by_timerange(files, time_range_minutes)
+
+# for i, chunk in enumerate(chunks):
+#     print(f"Chunk {i+1}: {chunk}")
 
 # %%
 if __name__ == "__main__":
+
     construct_MSG_timeseries()
     # no hail
     # 20220605_S0340_E0341_SSMIS_f16.nc
