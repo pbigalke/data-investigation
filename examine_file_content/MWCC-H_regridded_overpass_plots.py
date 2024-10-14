@@ -25,7 +25,7 @@ def load_counter_file(counter_filename):
 def occurrence_per_area_fraction():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
-  counter_file = f"{datapath}/overpasses_per_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
   out = f"{plotpath}/area_covered_by_overpasses.png"
@@ -100,7 +100,7 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
 def occurrence_per_year_and_coveredarea():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
-  counter_file = f"{datapath}/overpasses_per_year_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
   year_start = [1999, 2006]
@@ -200,7 +200,7 @@ def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, 
 def hailclass_development_per_area_thresholds():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
-  counter_file = f"{datapath}/overpasses_per_year_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
   # different thresholds
@@ -285,7 +285,7 @@ def plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area
 def hailclass_distribution_per_area_thresholds():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
-  counter_file = f"{datapath}/overpasses_per_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
   # different thresholds
@@ -357,7 +357,7 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
 def hailclass_distribution_and_development_for_area_threshold():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
-  counter_file = f"{datapath}/overpasses_per_year_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
   # loop over different thresholds
@@ -451,7 +451,7 @@ def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, ar
 def hailclass_per_satellite_and_area_threshold():
   # define plot path and file name of specific counter file
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
-  counter_file = f"{datapath}/overpasses_per_year_hour_hailclass_covered_area_sat.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hour_hailclass_covered_area_sat.nc"
   overpass_satellite_area = load_counter_file(counter_file)
   print(overpass_satellite_area)
 

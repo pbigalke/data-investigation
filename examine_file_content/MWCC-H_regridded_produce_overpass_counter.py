@@ -18,7 +18,7 @@ def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
                                                       output_filename="overpasses_per_year_hour_hailclass_covered_area_sat",
                                                       overwrite=False):
 
-  counter_filename = f"{path}/{output_filename}.nc"
+  counter_filename = f"{path}/statistics/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
     with xr.load_dataset(counter_filename) as counter:
