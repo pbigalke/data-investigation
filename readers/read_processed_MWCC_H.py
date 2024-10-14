@@ -11,12 +11,20 @@ import helpers.datetime_helper as hlp
 
 MWCCH_PATH = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"
 MWCCH_MSGGRID_PATH = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf_MSG_grid"
+ALL_VARS = ["datetime", "cloud_type", "TB", "POH", "hail_class"]
 
 # %%
-def read(file_path):
+def read(file_path, variables=ALL_VARS):
     """ read processed MWCC-H output containing probability of hail
     """
-    with xr.open_dataset(file_path, engine="netcdf4") as dataset:
+    if not isinstance(variables, list):
+        variables = [variables]
+
+    # get variables to drop
+    droplist = [var for var in ALL_VARS if var not in variables]
+
+    # read in dataset and drop variables that are not needed
+    with xr.open_dataset(file_path, engine="netcdf4", drop_variables=droplist) as dataset:
         return dataset
 
 def get_y_m_d_from_mwcch_filepath(file_path):
