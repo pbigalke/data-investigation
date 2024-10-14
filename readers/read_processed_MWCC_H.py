@@ -27,6 +27,52 @@ def read(file_path, variables=ALL_VARS):
     with xr.open_dataset(file_path, engine="netcdf4", drop_variables=droplist) as dataset:
         return dataset
 
+# %%
+# calculate the hail class from the probability of hail
+
+def get_hail_class(poh=None, type="number"):
+    # define hail classes, the entry np.NaN is assigned to poh=NaN
+    if type == "name":
+        hail_classes = ["no_hail", 
+                        "hail_potential", 
+                        "hail_initiation_graupel", 
+                        "large_hail", 
+                        "super_hail", 
+                        np.NaN]
+    else:
+        hail_classes = [0, 1, 2, 3, 4, np.NaN]
+
+    if poh is None:
+        return hail_classes[:-1]
+    
+    # if only one values is given
+    if isinstance(poh, float):
+        poh = np.array(poh)
+
+    # define boundaries of hail classes
+    boundaries = [0, 0.2, 0.36, 0.45, 0.6, 1.01]
+
+    # search for hail class corresponding to given poh
+    idx = np.searchsorted(boundaries, poh.ravel(), side='right') - 1
+    hail_classes = np.take(hail_classes, idx)
+
+    # reshape into original shape
+    hail_classes = hail_classes.reshape(poh.shape)
+
+    return hail_classes
+
+# calculate area percentage covered by overpass from probability of hail values
+def get_area_percentage_covered_by_overpass(poh):
+    # get total number of pixels
+    N_pixel = poh.shape[0] * poh.shape[1]
+    # get number of nan entries:
+    N_nans = np.sum(np.isnan(poh))
+    # calculate area percentage covered by overpass
+    area_perc = round((N_pixel-N_nans) / N_pixel * 100)
+
+    return area_perc
+# %%
+# functions to extract information from file path
 def get_y_m_d_from_mwcch_filepath(file_path):
     # get date string
     date = get_datestring_from_mwcch_filepath(file_path)
@@ -106,37 +152,6 @@ def get_detector_from_mwcch_filepath(file_path):
         if det.lower() in file_path.lower():
             return det
     return None
-
-def get_hail_class(poh=None, type="number"):
-    # define hail classes, the entry np.NaN is assigned to poh=NaN
-    if type == "name":
-        hail_classes = ["no_hail", 
-                        "hail_potential", 
-                        "hail_initiation_graupel", 
-                        "large_hail", 
-                        "super_hail", 
-                        np.NaN]
-    else:
-        hail_classes = [0, 1, 2, 3, 4, np.NaN]
-
-    if poh is None:
-        return hail_classes[:-1]
-    
-    # if only one values is given
-    if isinstance(poh, float):
-        poh = np.array(poh)
-
-    # define boundaries of hail classes
-    boundaries = [0, 0.2, 0.36, 0.45, 0.6, 1.01]
-
-    # search for hail class corresponding to given poh
-    idx = np.searchsorted(boundaries, poh.ravel(), side='right') - 1
-    hail_classes = np.take(hail_classes, idx)
-
-    # reshape into original shape
-    hail_classes = hail_classes.reshape(poh.shape)
-
-    return hail_classes
 
 def generate_mwcch_filepath(path, start_dt, end_dt, detector, satellite, suffix=""):
     # get date string from start datetime
