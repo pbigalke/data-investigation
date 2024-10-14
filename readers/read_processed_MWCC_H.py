@@ -2,6 +2,7 @@
 # %%
 import xarray as xr
 import numpy as np
+import re
 import os
 import sys
 sys.path.append("..")
@@ -19,40 +20,73 @@ def read(file_path):
         return dataset
 
 def get_y_m_d_from_mwcch_filepath(file_path):
-    # get year from path
-    year = file_path.split('/')[-3]
-
-    # get filename without path
-    file_name = os.path.basename(file_path)    
-
-    # find index of year-substring in filename
-    idx_date = file_name.find(year)
+    # get date string
+    date = get_datestring_from_mwcch_filepath(file_path)
 
     # extract date from filename
-    year = int(file_name[idx_date:idx_date+4])
-    month = int(file_name[idx_date+4:idx_date+6])
-    day = int(file_name[idx_date+6:idx_date+8])
+    year = int(date[:4])
+    month = int(date[4:6])
+    day = int(date[6:])
 
     return year, month, day
 
-def get_start_and_end_datetimes_from_mwcch_filepath(file_path):
-    split_file = os.path.basename(file_path).split('_')
-    date = split_file[0]
-    starttime = split_file[1][1:]
-    endtime = split_file[2][1:]
-    start_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{starttime[:2]}:{starttime[2:]}')
-    end_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{endtime[:2]}:{endtime[2:]}')
-    return start_datetime, end_datetime
+def get_scan_datetime_from_mwcch_filepath(file_path, which="both"):
+    
+    # get date string
+    date = get_datestring_from_mwcch_filepath(file_path)
+    
+    # get start and end times
+    starttime, endtime = get_start_and_end_timestrings_from_mwcch_filepath(file_path)
+
+    # convert to datetime and return the requested datetime
+    if which == "start":
+        start_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{starttime[:2]}:{starttime[2:]}')
+        return start_datetime
+    elif which == "end":
+        end_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{endtime[:2]}:{endtime[2:]}')
+        return end_datetime
+    else:
+        # convert to datetime
+        start_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{starttime[:2]}:{starttime[2:]}')
+        end_datetime = np.datetime64(f'{date[:4]}-{date[4:6]}-{date[6:]}T{endtime[:2]}:{endtime[2:]}')
+        return start_datetime, end_datetime
 
 def get_start_and_end_timestrings_from_mwcch_filepath(file_path):
-    split_file = os.path.basename(file_path).split('_')
-    starttime = split_file[1][1:]
-    endtime = split_file[2][1:]
-    return starttime, endtime
+    # Define the regular expression patterns for start and end times
+    start_pattern = r'_S(\d{4})_'
+    end_pattern = r'_E(\d{4})_'
 
-def get_sat_from_mwcch_filepath(file_path):
+    # Search for the patterns in the filename
+    start_match = re.search(start_pattern, file_path)
+    end_match = re.search(end_pattern, file_path)
+
+    # Extract the times if the patterns are found
+    if start_match and end_match:
+        start_time = start_match.group(1)
+        end_time = end_match.group(1)
+        return start_time, end_time
+    else:
+        raise ValueError("Start or end time pattern not found in filename")
+    
+def get_datestring_from_mwcch_filepath(file_path):
+    # Define the regular expression pattern for date
+    date_pattern = r'(\d{8})'
+
+    # Search for the patterns in the filename
+    date_match = re.search(date_pattern, file_path)
+
+    # Extract the times if the patterns are found
+    if date_match:
+        return date_match.group(1)
+    else:
+        raise ValueError("Date pattern not found in filename")
+
+def get_satellite(file_path=None):
     satellites = ['meto01', 'meto02', 'meto03', 'noaa15', 'noaa16', 'noaa17', 'noaa18', 'noaa19', 
                   'n20', 'n21', 'npp', 'f16', 'f17', 'gpm']
+    if file_path is None:
+        return satellites
+    
     for sat in satellites:
         if sat in file_path.lower():
             return sat
