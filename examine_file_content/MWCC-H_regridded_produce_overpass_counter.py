@@ -221,11 +221,11 @@ def create_smaller_counter_from_larger_one():
   with xr.load_dataset(f"{datapath}/statistics/overpasses_per_hour_hailclass_and_covered_area.nc") as counter:
 
     # save new file only dependent on hail class, year and area percentage
-    output_filename = f"{datapath}/overpasses_per_year_hailclass_area.nc"
+    output_filename = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
     sum_over_dimension_and_save(counter, ["month", "day", "hour"], output_filename)
 
     # save new file only dependent on hail class and area percentage
-    output_filename = f"{datapath}/overpasses_per_hailclass_area.nc"
+    output_filename = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
     sum_over_dimension_and_save(counter, ["year", "month", "day", "hour"], output_filename)
 
 # %%
