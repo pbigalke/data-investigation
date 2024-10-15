@@ -315,7 +315,7 @@ def hailclass_distribution_per_area_thresholds(years):
 
   # different thresholds
   area_thresh = [0, 10, 20, 30, 40, 50, 60]
-  out = f"{plotpath}/hail_class_distribution_per_areathresh_{years[0]}-{years[-1]}.png"
+  out = f"{plotpath}/hail_class_distribution_per_areathresh_{years[0]}-{years[-1]}_hailclasses_separated.png"
   plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh=area_thresh, 
                                              year_start=years[0], year_end=years[-1], output_name=out)
 
@@ -323,7 +323,7 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
                                                year_start=2006, year_end=2023, output_name=None, 
                                                figsize=(15, 5)):
   
-  f, ax1 = plt.subplots(1, layout='constrained')
+  f, axes = plt.subplots(1, 2, layout='constrained', width_ratios=[2, 3])
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
   # ax1.set_title("distribution of hail classes per area threshold")
@@ -334,15 +334,15 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
   # get hail class names
   hail_class_names = mwcch_read.get_hail_class(type="name")
 
+  # devide into non-hail and hail classes
+  hail_group_idx = [np.array([0, 1]).astype(int), np.arange(2, len(hail_class_names)).astype(int)]
+
   # get step between bars and bar width
   step = 0.8 / len(area_thresh)
   width = 0.75 / len(area_thresh)
 
   # loop over area thresholds
   for t, thresh in enumerate(area_thresh):
-
-    # set x positions for bars
-    x_positions = np.arange(0, len(overpass_hailclass_area.hail_class), 1) + t * step
 
     # select only overpasses with certain area threshold and sum over all areas
     area_filtered_data = overpass_hailclass_area.where(overpass_hailclass_area['area_perc'] >= thresh, drop=True)
@@ -356,27 +356,47 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
     # get total number and percentage of overpasses containing this hail class
     n_class = hail_counts.values / N_total * 100
     
-    # plot bar for this class
-    ax1.bar(x_positions, n_class, width, 
-            color=mwcch_plt.hail_class_colors_list, 
-            align="center")
-    
+    for g, hail_group in enumerate(hail_group_idx):
+      # plot the NON_HAIL classes
+      ax1 = axes[g]
+      # set x positions for bars
+      x_positions = np.arange(0, len(hail_group), 1) + t * step
+      # get colors for these hail classes
+      colors = [mwcch_plt.hail_class_colors_list[i] for i in hail_group]
+      # plot bar for this class
+      ax1.bar(x_positions, n_class[hail_group], width, 
+              color=colors, align="center")
+      
   # set x ticks for area thresholds
-  x_thresh = np.arange(0, len(hail_class_names), 1)
-  thresh_ticks = np.sort(np.concatenate([x_thresh + step * t for t in range(len(area_thresh))]))
-  thresh_tick_labels = [f"{l}" for l in np.tile(area_thresh, len(hail_class_names)).flatten()]
-  ax1.set_xticks(thresh_ticks, labels=thresh_tick_labels) #, rotation=45, ha='right')
-  ax1.set_xlabel("area threshold [%]")
+  for g, hail_group in enumerate(hail_group_idx):
+    # select axis
+    ax1 = axes[g]
 
-  # second ticks for the class names
-  sec = ax1.secondary_xaxis(location='top')
-  x_class = np.arange(0, len(hail_class_names), 1) + step * (len(area_thresh) / 2. - 0.5)
-  sec.set_xticks(x_class, labels=hail_class_names)
+    # Add borders around the plot
+    for spine in ax1.spines.values():
+        spine.set_visible(True)
 
-  # format the rest of the axes
-  ax1.set_xlim(-0.15, len(hail_class_names))
-  ax1.set_ylabel("occurrence [%]")
-  ax1.grid(axis='x')
+    # first ticks for the area thresholds
+    x_thresh = np.arange(0, len(hail_group), 1)
+    thresh_ticks = np.sort(np.concatenate([x_thresh + step * t for t in range(len(area_thresh))]))
+    thresh_tick_labels = [f"{l}" for l in np.tile(area_thresh, len(hail_group)).flatten()]
+    ax1.set_xticks(thresh_ticks, labels=thresh_tick_labels) #, rotation=45, ha='right')
+    ax1.set_xlabel("area threshold [%]")
+
+    # second ticks for the class names
+    sec = ax1.secondary_xaxis(location='top')
+    x_class = np.arange(0, len(hail_group), 1) + step * (len(area_thresh) / 2. - 0.5)
+    class_names = [hail_class_names[i] for i in hail_group]
+    sec.set_xticks(x_class, labels=class_names)
+
+    # format the rest of the axes
+    ax1.set_xlim(-0.15, len(hail_group))
+    ax1.set_ylabel("occurrence [%]")
+    # set y axis on the right for second plot
+    if g == 1:
+      ax1.yaxis.tick_right()
+      ax1.yaxis.set_label_position('right')
+    ax1.grid(axis='x')
 
   # plt.tight_layout()
 
