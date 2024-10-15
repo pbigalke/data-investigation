@@ -12,10 +12,11 @@ import readers.read_processed_MWCC_H as mwcch_read
 import plotting.plot_MWCC_H as mwcch_plt
 
 datapath = mwcch_read.MWCCH_MSGGRID_PATH
+plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
 
 def load_counter_file(counter_filename):
   if os.path.exists(counter_filename):
-    print("thingy is here")
+    print("thingy is here: ", counter_filename)
     with xr.load_dataset(counter_filename) as counter:
       return counter
   return None
@@ -24,7 +25,6 @@ def load_counter_file(counter_filename):
 # plot hail class occurrence per area 
 def occurrence_per_area_fraction():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
   counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
@@ -62,7 +62,7 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
   for h in overpass_hailclass_area.hail_class.values:
 
     # get counts only for this hail_class
-    area_counts = overpass_hailclass_area.sel(hail_class=h).values
+    area_counts = overpass_hailclass_area.N_overpasses.sel(hail_class=h).values
 
     # get color of hail_class
     color = mwcch_plt.hail_class_colors_list[int(h)]
@@ -99,7 +99,6 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
 # plot the percentage of hail classes per area threshold and year
 def occurrence_per_year_and_coveredarea():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
@@ -199,7 +198,6 @@ def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, 
 # %%
 def hailclass_development_per_area_thresholds():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
@@ -284,7 +282,6 @@ def plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area
 # plot the distribution of hail classes per area thresholds
 def hailclass_distribution_per_area_thresholds():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
   counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
@@ -356,7 +353,6 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
 # %%
 def hailclass_distribution_and_development_for_area_threshold():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
@@ -450,7 +446,6 @@ def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, ar
 # %%
 def hailclass_per_satellite_and_area_threshold():
   # define plot path and file name of specific counter file
-  plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
   counter_file = f"{datapath}/statistics/overpasses_per_year_hour_hailclass_covered_area_sat.nc"
   overpass_satellite_area = load_counter_file(counter_file)
   print(overpass_satellite_area)
@@ -543,10 +538,21 @@ def hailclass_percentage_per_area_thresh_and_satellite(overpass_hailclass_hour_a
 
 # %%
 if __name__ == "__main__":
-  # occurrence_per_area_fraction()
+  print("plot hail class occurrence per area")
+  occurrence_per_area_fraction()
+
+  # print("plot hail class occurrence per year and covered area")
   # occurrence_per_year_and_coveredarea()
+
+  # print("plot hail class development per area thresholds")
   # hailclass_development_per_area_thresholds()
+
+  # print("plot hail class distribution per area thresholds")
   # hailclass_distribution_per_area_thresholds()
+
+  # print("plot hail class distribution and development for area threshold")
   # hailclass_distribution_and_development_for_area_threshold()
-  hailclass_per_satellite_and_area_threshold()
+
+  # print("plot hail class occurrence per satellite and area threshold")
+  # hailclass_per_satellite_and_area_threshold()
 # %%
