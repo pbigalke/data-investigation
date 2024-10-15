@@ -9,6 +9,7 @@ import os
 import sys
 sys.path.append("..")
 import readers.read_processed_MWCC_H as mwcch_read
+import readers.read_MSG as msg_read
 import plotting.plot_MWCC_H as mwcch_plt
 
 datapath = mwcch_read.MWCCH_MSGGRID_PATH
@@ -23,31 +24,38 @@ def load_counter_file(counter_filename):
 
 # %%
 # plot hail class occurrence per area 
-def occurrence_per_area_fraction():
+def occurrence_per_area_fraction(years):
   # define plot path and file name of specific counter file
-  counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
-  out = f"{plotpath}/area_covered_by_overpasses.png"
-  barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=out, figsize=(8, 8),
-                                        fraction=False, log=False)
-  out_log = f"{plotpath}/area_covered_by_overpasses_log.png"
-  barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=out_log, figsize=(8, 8),
+  out = f"{plotpath}/area_covered_by_overpasses_{years[0]}-{years[-1]}.png"
+  barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=years[0], year_end=years[-1],
+                                        output_name=out, figsize=(8, 5), fraction=False, log=False)
+  out_log = f"{plotpath}/area_covered_by_overpasses_{years[0]}-{years[-1]}_log.png"
+  barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=years[0], year_end=years[-1],
+                                        output_name=out_log, figsize=(8, 5),
                                         fraction=False, log=True)
-  out_frac = f"{plotpath}/area_covered_by_overpasses_frac.png"
-  barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=out_frac, figsize=(8, 8),
+  out_frac = f"{plotpath}/area_covered_by_overpasses_{years[0]}-{years[-1]}_frac.png"
+  barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=years[0], year_end=years[-1],
+                                        output_name=out_frac, figsize=(8, 5),
                                         fraction=True, log=False)
-  out_frac_log = f"{plotpath}/area_covered_by_overpasses_frac_log.png"
-  barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=out_frac_log, figsize=(8, 8),
+  out_frac_log = f"{plotpath}/area_covered_by_overpasses_{years[0]}-{years[-1]}_frac_log.png"
+  barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=years[0], year_end=years[-1],
+                                        output_name=out_frac_log, figsize=(8, 5),
                                         fraction=True, log=True)
 
-def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=None, figsize=(10, 8),
+def barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=1999, year_end=2023,
+                                          output_name=None, figsize=(10, 8),
                                           fraction=False, log=False):
   
   f, ax = plt.subplots(1)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
   ax.set_title("distribution of covered area fraction")
+
+  # select the data for the given year range and sum over all years
+  overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, year_end)).sum(dim="year")
 
   # get total number of overpasses in dataset
   N_total = overpass_hailclass_area.N_overpasses.sum().values
@@ -79,11 +87,26 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, output_name=N
   ax.set_xlim(x_center[0]-0.5, x_center[-1] + 0.5)
   ax.set_xlabel("area covered by overpass [%]")
 
+  # mark area for different crop sizes
+  msglon, msglat = msg_read.get_lon_lat()
+  N_pix = len(msglon) * len(msglat)
+  for crop in [128, 200]:
+    area_crop = crop * crop / N_pix * 100
+    # draw vertical line
+    ax.axvline(x=area_crop, color="k", linestyle="--", linewidth=0.5)
+    # convert data coordinates to display coordinates
+    display_coords = ax.transData.transform((area_crop, 0.5))
+    # convert display coordinates to axes coordinates
+    axes_coords = ax.transAxes.inverted().transform(display_coords)
+    # add text next to line using axes coordinates
+    ax.text(axes_coords[0], 0.9, f"{crop}x{crop}", fontsize=8, 
+            verticalalignment='center', transform=ax.transAxes)
+    
   # format y axes
   ax.set_ylabel("fraction of all overpasses" if fraction else "number of overpasses")
   if log:
     ax.set_yscale('log')
-  ax.grid()
+  ax.grid(True)
 
   plt.tight_layout()
 
@@ -107,7 +130,7 @@ def occurrence_per_year_and_coveredarea():
     out = f"{plotpath}/hail_occurrence_per_area_thresh_and_year_{y}onwards.png"
     hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, year_start=y, output_name=out)
 
-def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, year_start=1999, output_name=None):
+def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, year_start=2006, output_name=None):
   
   # get hail classes  
   hail_classes = overpass_year_hailclass_area.hail_class.values 
@@ -165,25 +188,25 @@ def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, 
             transform=ax.transAxes, fontsize=10, verticalalignment='bottom',
             color="white")
 
-    # format axes
-    for ax in fig.get_axes():
-      if ax.get_subplotspec().is_first_col():
-        ax.set_yticks(np.arange(0, len(new_area_bins))-0.5, labels=new_area_bins, fontsize=8)
-        ax.set_ylim(-0.5, len(new_area_bins)-1.5)
-        ax.set_ylabel("area [%]")
-        ax.set_xticks(np.arange(0, len(years), 1)-0.5, 
-                      labels=years, rotation=-45, ha='left', fontsize=8)
-        ax.set_xlim(-0.5, len(years)-0.5)
-        if not ax.get_subplotspec().is_last_row():
-          ax.set_xticklabels([]) 
-        else:
-          ax.set_xlabel("years")
-          # Turn off every second x-tick label
-          labels = ax.get_xticklabels()
-          for i, label in enumerate(labels):
-              if i % 2 != 0:
-                  labels[i] = ''
-          ax.set_xticklabels(labels)
+  # format axes
+  for ax in fig.get_axes():
+    if ax.get_subplotspec().is_first_col():
+      ax.set_yticks(np.arange(0, len(new_area_bins))-0.5, labels=new_area_bins, fontsize=8)
+      ax.set_ylim(-0.5, len(new_area_bins)-1.5)
+      ax.set_ylabel("area [%]")
+      ax.set_xticks(np.arange(0, len(years), 1)-0.5, 
+                    labels=years, rotation=-45, ha='left', fontsize=8)
+      ax.set_xlim(-0.5, len(years)-0.5)
+      if not ax.get_subplotspec().is_last_row():
+        ax.set_xticklabels([]) 
+      else:
+        ax.set_xlabel("years")
+        # Turn off every second x-tick label
+        labels = ax.get_xticklabels()
+        for i, label in enumerate(labels):
+            if i % 2 != 0:
+                labels[i] = ''
+        ax.set_xticklabels(labels)
 
   # plt.tight_layout()
 
@@ -202,17 +225,22 @@ def hailclass_development_per_area_thresholds():
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
   # different thresholds
-  area_thresh = [10, 20, 30, 40, 50, 60]
-  out = f"{plotpath}/hail_class_development_per_areathresh.png"
-  plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area_thresh, 
-                                            output_name=out)
+  area_thresh = [0, 10, 20, 30, 40, 50, 60]
+  year_start = [1999, 2006]
+  for y in year_start:
+    out = f"{plotpath}/hail_class_development_per_areathresh_{y}onwards.png"
+    plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area_thresh, year_start=y, 
+                                              output_name=out)
 
-def plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area_thresh, output_name=None, 
-                                              figsize=(10, 15)):
+def plot_hailclass_development_per_areathresh(overpass_area_year_hail, area_thresh, year_start=2006,
+                                              output_name=None, figsize=(10, 15)):
   
   # number of area thresholds
   N_thresh = len(area_thresh)
   colors = plt.cm.viridis(np.linspace(0, 1, N_thresh))
+
+  # filter for year_start
+  overpass_area_year_hail = overpass_area_year_hail.sel(year=slice(year_start, None))
 
   # get hail class names
   hail_class_names = mwcch_read.get_hail_class(type="name")
@@ -227,7 +255,7 @@ def plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area
 
     # select only overpasses with certain area threshold and sum over all areas
     area_filtered_data = \
-      overpass_year_hailclass_area.where(overpass_year_hailclass_area['area_perc'] >= thresh, drop=True)
+      overpass_area_year_hail.where(overpass_area_year_hail['area_perc'] >= thresh, drop=True)
 
     # get number of overpasses per year and hail_class
     yearly_hail_counts = area_filtered_data.N_overpasses.sum(dim=["area_perc"])
@@ -280,23 +308,28 @@ def plot_hailclass_development_per_areathresh(overpass_year_hailclass_area, area
 
 # %%
 # plot the distribution of hail classes per area thresholds
-def hailclass_distribution_per_area_thresholds():
+def hailclass_distribution_per_area_thresholds(years):
   # define plot path and file name of specific counter file
-  counter_file = f"{datapath}/statistics/overpasses_per_hailclass_area.nc"
+  counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
 
   # different thresholds
-  area_thresh = [10, 20, 30, 40, 50, 60]
-  out = f"{plotpath}/hail_class_distribution_per_areathresh.png"
-  plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh=area_thresh, output_name=out)
+  area_thresh = [0, 10, 20, 30, 40, 50, 60]
+  out = f"{plotpath}/hail_class_distribution_per_areathresh_{years[0]}-{years[-1]}.png"
+  plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh=area_thresh, 
+                                             year_start=years[0], year_end=years[-1], output_name=out)
 
-def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh, output_name=None, 
+def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh, 
+                                               year_start=2006, year_end=2023, output_name=None, 
                                                figsize=(15, 6)):
   
   f, ax1 = plt.subplots(1, layout='constrained')
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
   # ax1.set_title("distribution of hail classes per area threshold")
+
+  # select the data for the given year range and sum over all years
+  overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, year_end)).sum(dim="year")
 
   # get hail class names
   hail_class_names = mwcch_read.get_hail_class(type="name")
@@ -356,19 +389,21 @@ def hailclass_distribution_and_development_for_area_threshold():
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
 
-  # loop over different thresholds
-  for t in [50, 60]:  #0, 10, 20, 30, 40]:
+  starting_year = [1999, 2006]
+  for y in starting_year:
+    # loop over different thresholds
+    for t in [0]: #, 10, 20, 30, 40, 50, 60]:  #]:
 
-    out = f"{plotpath}/hail_class_distribution_development_areathresh{t}.png"
-    plot_hailclass_distribution_and_development(overpass_year_hailclass_area, 
-                                                area_threshold=t, output_name=out)
+      out = f"{plotpath}/hail_class_distribution_development_areathresh{t}_{y}onwards.png"
+      plot_hailclass_distribution_and_development(overpass_year_hailclass_area, 
+                                                  area_threshold=t, output_name=out)
 
-    out_only_hail = f"{plotpath}/hail_class_distribution_development_areathresh{t}_onlyhail.png"
-    plot_hailclass_distribution_and_development(overpass_year_hailclass_area, 
-                                                area_threshold=t, output_name=out_only_hail, only_hail=True)
+      out_only_hail = f"{plotpath}/hail_class_distribution_development_areathresh{t}_{y}onwards_onlyhail.png"
+      plot_hailclass_distribution_and_development(overpass_year_hailclass_area, area_threshold=t, year_start=y,
+                                                  output_name=out_only_hail, only_hail=True)
 
-def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, area_threshold=0, output_name=None, 
-                                                figsize=(15, 5), fraction=False, only_hail=False):
+def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, area_threshold=0, year_start=2006, 
+                                                output_name=None, figsize=(15, 5), fraction=False, only_hail=False):
   
   f, (ax1, ax2) = plt.subplots(1, 2, width_ratios=[1,2])
   f.set_figheight(figsize[1])
@@ -376,11 +411,14 @@ def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, ar
   ax1.set_title("distribution of hail classes")
   ax2.set_title("hail classes over the years")
 
-  # select only overpasses with certain area threshold and sum over all areas
+  # select only overpasses with certain area threshold
   area_filtered_data = overpass_year_hailclass_area.where(overpass_year_hailclass_area['area_perc'] >= area_threshold, drop=True)
 
-  # get number of overpasses per year and hail_class
+  # sum over all areas
   yearly_hail_counts = area_filtered_data.N_overpasses.sum(dim=["area_perc"])
+
+  # filter for year_start
+  yearly_hail_counts = yearly_hail_counts.sel(year=slice(year_start, None))
 
   # get total number of overpasses in dataset
   N_total = yearly_hail_counts.sum().values
@@ -444,86 +482,98 @@ def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, ar
 
 
 # %%
-def hailclass_per_satellite_and_area_threshold():
+def hailclass_overpass_per_satellite_year_and_area_threshold():
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hour_hailclass_covered_area_sat.nc"
   overpass_satellite_area = load_counter_file(counter_file)
-  print(overpass_satellite_area)
-
-  out = f"{plotpath}/overpasses_per_satellite_and_areathresh.png"
-  # hailclass_percentage_per_area_thresh_and_satellite(overpass_satellite_area, output_name=out)
-
-def hailclass_percentage_per_area_thresh_and_satellite(overpass_hailclass_hour_area_sat, output_name=None):
   
-  # sum over all hours
-  overpass_hailclass_area_sat = overpass_hailclass_hour_area_sat.sum(dim=["hour"])
+  hail_classes = mwcch_read.get_hail_class(type="name") + ["all"]
+  starting_year = [1999, 2006]
+  for y in starting_year:
+    for h, hail in enumerate(hail_classes):
 
-  # get hail classes  
-  hail_classes = overpass_hailclass_area_sat.hail_class.values 
+      out = f"{plotpath}/{hail}_overpasses_per_satellite_and_areathresh_{y}onwards.png"
+      satellite_overpasses_per_area_thresh_and_year(overpass_satellite_area, year_start=y, 
+                                                    hail_class=h, hail_class_name=hail,
+                                                    output_name=out)
+    return
 
-  # get satellite names
-  sats = overpass_hailclass_area_sat.sat.values
+def satellite_overpasses_per_area_thresh_and_year(overpass_hailclass_hour_area_sat, year_start=2006, 
+                                                  hail_class=None, hail_class_name="all", output_name=None):
+  
+  # get satellites  
+  sats = overpass_hailclass_hour_area_sat.sat.values
+
+  # filter for year_start
+  overpass_hailclass_hour_area_sat = overpass_hailclass_hour_area_sat.sel(year=slice(year_start, None))
+
+  # sum over all hour
+  overpass_year_area_sat = overpass_hailclass_hour_area_sat.sum(dim="hour")
+
+  # select given hail class or sum over all hail classes
+  if hail_class_name != "all":
+    overpass_year_area_sat = overpass_year_area_sat.where(overpass_year_area_sat.hail_class == hail_class, drop=True)
+  overpass_year_area_sat = overpass_year_area_sat.sum(dim="hail_class")
 
   # regroup data by larger area bins
   # Step 1: Define the new bins
   new_area_bins = np.arange(0, 110, 10)
   # Step 2: Group the data by the new bins
-  grouped = overpass_hailclass_area_sat.groupby_bins('area_perc', new_area_bins, right=True)
+  grouped = overpass_year_area_sat.groupby_bins('area_perc', new_area_bins, right=True)
   # Step 3: Aggregate the counts within each new bin
   aggregated_counts = grouped.sum()
-  # get total number of overpasses per sat and area_bin
-  total_overpasses = aggregated_counts.sum(dim=["hail_class"]).N_overpasses.values
+
+  # get axis arrays
+  years = overpass_year_area_sat.year.values
 
   # create figure with gridspec
-  fig = plt.figure(figsize=(4, 2*(len(hail_classes)+1)))
-  gs = mpl.gridspec.GridSpec(len(hail_classes)+1, 2, width_ratios=[20, 1], 
-                             hspace=0.3, wspace=0)
+  fig = plt.figure(figsize=(15, 8))
+  fig.suptitle(f"hail class: {hail_class_name}")
+  n_rows = 5
+  n_cols = 3
+  gs = mpl.gridspec.GridSpec(n_rows, n_cols*2, width_ratios=[20, 1, 20, 1, 20, 1], 
+                             hspace=0.05, wspace=0.03)
 
-  # first plot total number of overpasses per area bin and sat
-  ax = fig.add_subplot(gs[0, 0])
-  c = ax.imshow(total_overpasses, cmap="inferno", origin="lower")
-  cbar_ax = fig.add_subplot(gs[0, 1])
-  fig.colorbar(c, cax=cbar_ax, label="# overpasses") #, fraction=0.046, pad=0.04
-  # add hail class text in the bottom left corner
-  ax.text(0.01, 0.01, "total number of overpasses", 
-          transform=ax.transAxes, fontsize=10, verticalalignment='bottom',
-          color="white")
-
-  # loop over hail classes
-  for hail in hail_classes:
-    ax = fig.add_subplot(gs[int(hail)+1, 0])
-    # ax.set_title(f"{mwcch_read.get_hail_class(type='name')[int(hail)]}")
+  # loop over satellites
+  for s, sat in enumerate(sats):
+    ax = fig.add_subplot(gs[s%5, 2*np.floor(s/5.).astype(int)])
 
     # get number of overpasses per area bin and year
-    n_hail = aggregated_counts.where(aggregated_counts.hail_class == hail, drop=True)
-    perc_hail = n_hail.N_overpasses.values[:, :, 0] / total_overpasses * 100
-    # Replace NaN values with zero
-    perc_hail[np.isnan(perc_hail)] = 0
+    n_sat = aggregated_counts.where(aggregated_counts.sat == sat, drop=True).N_overpasses.values
 
     # plot percentage of hail class per area bin and year
-    c = ax.imshow(perc_hail, cmap="inferno", origin="lower")#, 
+    c = ax.imshow(n_sat, cmap="inferno", origin="lower")#, 
                   # vmin=0, vmax=vmax)
-    cbar_ax = fig.add_subplot(gs[int(hail)+1, 1])
-    fig.colorbar(c, cax=cbar_ax, label="Occurrence [%]")
+    cbar_ax = fig.add_subplot(gs[s%5, 2*np.floor(s/5.).astype(int)+1])
+    fig.colorbar(c, cax=cbar_ax, label="# overpasses")
 
-    # add hail class text in the bottom left corner
-    ax.text(0.01, 0.01, mwcch_read.get_hail_class(type='name')[int(hail)], 
-            transform=ax.transAxes, fontsize=10, verticalalignment='bottom',
+    # add sat text in the upper middle
+    ax.text(0.5, 0.95, f"{sat}", transform=ax.transAxes, 
+            fontsize=10, verticalalignment='top', horizontalalignment='center',
             color="white")
 
-    # format axes
-    for ax in fig.get_axes():
-      if ax.get_subplotspec().is_first_col():
-        ax.set_yticks(np.arange(0, len(new_area_bins))-0.5, labels=new_area_bins, fontsize=8)
-        ax.set_ylim(-0.5, len(new_area_bins)-1.5)
-        ax.set_ylabel("area [%]")
-        ax.set_xticks(np.arange(0, len(sats), 1)-0.5, 
-                      labels=sats, rotation=-45, ha='left', fontsize=8)
-        ax.set_xlim(-0.5, len(sats)-0.5)
-        if not ax.get_subplotspec().is_last_row():
-          ax.set_xticklabels([]) 
-        else:
-          ax.set_xlabel("satellites")
+  # format axes
+  for ax in fig.get_axes():
+    subplot_spec = ax.get_subplotspec()
+    nrows, ncols, row, col = subplot_spec.get_geometry()
+    
+    if col % 2 == 0:  # Check if the column index is even
+      ax.set_yticks(np.arange(0, len(new_area_bins))-0.5, labels=new_area_bins, fontsize=8)
+      ax.set_ylim(-0.5, len(new_area_bins)-1.5)
+      ax.set_ylabel("area [%]")
+      ax.set_xticks(np.arange(0, len(years), 1)-0.5, 
+                    labels=years, rotation=-45, ha='left', fontsize=8)
+      ax.set_xlim(-0.5, len(years)-0.5)
+    if ax.get_subplotspec().is_last_row():
+      ax.set_xlabel("years")
+      # Turn off every second x-tick label
+      labels = ax.get_xticklabels()
+      for i, label in enumerate(labels):
+          if i % 2 != 0:
+              labels[i] = ''
+      ax.set_xticklabels(labels)
+    else:
+      ax.set_xticklabels([]) 
 
   # plt.tight_layout()
 
@@ -535,11 +585,12 @@ def hailclass_percentage_per_area_thresh_and_satellite(overpass_hailclass_hour_a
     plt.close()
 
 
-
 # %%
 if __name__ == "__main__":
-  print("plot hail class occurrence per area")
-  occurrence_per_area_fraction()
+  # print("plot hail class occurrence per area for 1999-2023")
+  # occurrence_per_area_fraction(np.arange(1999, 2024, 1))
+  # print("plot hail class occurrence per area for 2006-2023")
+  # occurrence_per_area_fraction(np.arange(2006, 2024, 1))
 
   # print("plot hail class occurrence per year and covered area")
   # occurrence_per_year_and_coveredarea()
@@ -547,12 +598,16 @@ if __name__ == "__main__":
   # print("plot hail class development per area thresholds")
   # hailclass_development_per_area_thresholds()
 
-  # print("plot hail class distribution per area thresholds")
-  # hailclass_distribution_per_area_thresholds()
+  # print("plot hail class distribution per area thresholds for 1999-2023")
+  # hailclass_distribution_per_area_thresholds(np.arange(1999, 2024, 1))
+  # print("plot hail class distribution per area thresholds for 2006-2023")
+  # hailclass_distribution_per_area_thresholds(np.arange(2006, 2024, 1))
 
   # print("plot hail class distribution and development for area threshold")
   # hailclass_distribution_and_development_for_area_threshold()
 
-  # print("plot hail class occurrence per satellite and area threshold")
-  # hailclass_per_satellite_and_area_threshold()
+  print("plot overpasses per satellite, year and area threshold")
+  hailclass_overpass_per_satellite_year_and_area_threshold()
+
+
 # %%
