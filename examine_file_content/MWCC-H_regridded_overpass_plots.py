@@ -321,7 +321,7 @@ def hailclass_distribution_per_area_thresholds(years):
 
 def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh, 
                                                year_start=2006, year_end=2023, output_name=None, 
-                                               figsize=(15, 6)):
+                                               figsize=(15, 5)):
   
   f, ax1 = plt.subplots(1, layout='constrained')
   f.set_figheight(figsize[1])
@@ -334,11 +334,15 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
   # get hail class names
   hail_class_names = mwcch_read.get_hail_class(type="name")
 
+  # get step between bars and bar width
+  step = 0.8 / len(area_thresh)
+  width = 0.75 / len(area_thresh)
+
   # loop over area thresholds
   for t, thresh in enumerate(area_thresh):
 
     # set x positions for bars
-    x_positions = np.arange(0, len(overpass_hailclass_area.hail_class), 1) + t * 0.15
+    x_positions = np.arange(0, len(overpass_hailclass_area.hail_class), 1) + t * step
 
     # select only overpasses with certain area threshold and sum over all areas
     area_filtered_data = overpass_hailclass_area.where(overpass_hailclass_area['area_perc'] >= thresh, drop=True)
@@ -353,19 +357,20 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
     n_class = hail_counts.values / N_total * 100
     
     # plot bar for this class
-    ax1.bar(x_positions, n_class, 0.13, 
+    ax1.bar(x_positions, n_class, width, 
             color=mwcch_plt.hail_class_colors_list, 
             align="center")
     
   # set x ticks for area thresholds
   x_thresh = np.arange(0, len(hail_class_names), 1)
-  thresh_ticks = np.sort(np.concatenate([x_thresh + 0.15 * t for t in range(len(area_thresh))]))
-  thresh_tick_labels = [f">{l}%" for l in np.tile(area_thresh, len(hail_class_names)).flatten()]
+  thresh_ticks = np.sort(np.concatenate([x_thresh + step * t for t in range(len(area_thresh))]))
+  thresh_tick_labels = [f"{l}" for l in np.tile(area_thresh, len(hail_class_names)).flatten()]
   ax1.set_xticks(thresh_ticks, labels=thresh_tick_labels) #, rotation=45, ha='right')
+  ax1.set_xlabel("area threshold [%]")
 
   # second ticks for the class names
   sec = ax1.secondary_xaxis(location='top')
-  x_class = np.arange(0, len(hail_class_names), 1) + 0.15 * (len(area_thresh) / 2. - 0.5)
+  x_class = np.arange(0, len(hail_class_names), 1) + step * (len(area_thresh) / 2. - 0.5)
   sec.set_xticks(x_class, labels=hail_class_names)
 
   # format the rest of the axes
@@ -492,11 +497,10 @@ def hailclass_overpass_per_satellite_year_and_area_threshold():
   for y in starting_year:
     for h, hail in enumerate(hail_classes):
 
-      out = f"{plotpath}/{hail}_overpasses_per_satellite_and_areathresh_{y}onwards.png"
+      out = f"{plotpath}/overpasses_per_satellite_and_areathresh_{y}onwards_{hail}.png"
       satellite_overpasses_per_area_thresh_and_year(overpass_satellite_area, year_start=y, 
                                                     hail_class=h, hail_class_name=hail,
                                                     output_name=out)
-    return
 
 def satellite_overpasses_per_area_thresh_and_year(overpass_hailclass_hour_area_sat, year_start=2006, 
                                                   hail_class=None, hail_class_name="all", output_name=None):
@@ -598,16 +602,16 @@ if __name__ == "__main__":
   # print("plot hail class development per area thresholds")
   # hailclass_development_per_area_thresholds()
 
-  # print("plot hail class distribution per area thresholds for 1999-2023")
-  # hailclass_distribution_per_area_thresholds(np.arange(1999, 2024, 1))
-  # print("plot hail class distribution per area thresholds for 2006-2023")
-  # hailclass_distribution_per_area_thresholds(np.arange(2006, 2024, 1))
+  print("plot hail class distribution per area thresholds for 1999-2023")
+  hailclass_distribution_per_area_thresholds(np.arange(1999, 2024, 1))
+  print("plot hail class distribution per area thresholds for 2006-2023")
+  hailclass_distribution_per_area_thresholds(np.arange(2006, 2024, 1))
 
   # print("plot hail class distribution and development for area threshold")
   # hailclass_distribution_and_development_for_area_threshold()
 
-  print("plot overpasses per satellite, year and area threshold")
-  hailclass_overpass_per_satellite_year_and_area_threshold()
+  # print("plot overpasses per satellite, year and area threshold")
+  # hailclass_overpass_per_satellite_year_and_area_threshold()
 
 
 # %%
