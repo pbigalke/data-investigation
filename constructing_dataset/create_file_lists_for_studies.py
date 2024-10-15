@@ -35,7 +35,6 @@ def create_file_list_per_area_thresholds(years, months, area_thresholds=[10, 20,
 
             # loop over files
             for file in mwcch_files:
-                print(file)
                 # read in dataset
                 mwcch_data = mwcch_read.read(file, variables=["hail_class"]).hail_class.values
 
@@ -53,6 +52,22 @@ def create_file_list_per_area_thresholds(years, months, area_thresholds=[10, 20,
                     print(f"{count}", flush=True)
                 count += 1
 
+def read_txt_file_into_list(file_path):
+    """Read a text file into a list, skipping the first row.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the text file.
+
+    Returns
+    -------
+    list
+        List of lines from the file, excluding the first row.
+    """
+    with open(file_path, 'r') as file:
+        lines = file.readlines()[1:]  # Read all lines and skip the first one
+    return [line.strip() for line in lines]  # Strip newline characters
 
 # %%
 if __name__ == "__main__":
