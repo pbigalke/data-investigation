@@ -68,6 +68,10 @@ def create_file_list_per_area_thresholds(mwcch_path, years, months, area_thresho
                 count += 1
 
 def read_mwcch_files_for_study_settings(mwcch_path, years, months, area_threshold):
+
+    # if area threshold is 0, return all files
+    if area_threshold == 0:
+        return match.get_files_in_study_period(mwcch_path, years, months=months)
     
     filename = get_list_filename(mwcch_path, years, months, area_threshold)
     if not os.path.exists(filename):
