@@ -3,13 +3,10 @@ import glob
 import xarray as xr
 import numpy as np
 import datetime
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import os
 import sys
 sys.path.append("..")
 import readers.read_processed_MWCC_H as mwcch_read
-import plotting.plot_MWCC_H as mwcch_plt
 
 datapath = mwcch_read.MWCCH_MSGGRID_PATH
 
@@ -27,7 +24,8 @@ def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
   else:
     # coords
     hours = np.arange(0, 24, 1)
-    hail_classes = mwcch_read.get_hail_class(poh=None, type="number")
+    hail_classes = mwcch_read.get_hail_classes(type="number")
+    hail_class_names = mwcch_read.get_hail_classes(type="name")
     area = np.arange(0, 101, 1)
     sat = mwcch_read.get_satellite()
 
@@ -38,7 +36,7 @@ def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
     count_overpass = xr.Dataset(
       data_vars=dict(
           N_overpasses=(["year", "hour", "hail_class", "area_perc", "sat"], N_overpasses),
-          hail_class_names=(["hail_class"], mwcch_read.get_hail_class(type="name")),
+          hail_class_names=(["hail_class"], hail_class_names),
       ),
       coords=dict(
           year=("year", years),
@@ -72,10 +70,10 @@ def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
               mwcch_data = mwcch_read.read(f, variables=["hail_class"]).hail_class.values
 
               # get maximum hail class within this overpass
-              max_hail_class = 0 if np.isnan(np.nanmax(mwcch_data)) else np.nanmax(mwcch_data)
+              max_hail_class = mwcch_read.max_hail_class(mwcch_data, min_pixel=1)
 
               # calculate area percentage covered by overpass
-              area_perc = mwcch_read.get_area_percentage_covered_by_overpass(mwcch_data)
+              area_perc = mwcch_read.area_percentage_covered_by_overpass(mwcch_data)
 
               # get satellite from filename
               sat = mwcch_read.get_satellite(file_path=f)
@@ -118,7 +116,8 @@ def count_overpasses_per_hour_hailclass_and_area(path, years, months,
     # coords
     days = np.arange(1, 32, 1)
     hours = np.arange(0, 24, 1)
-    hail_classes = mwcch_read.get_hail_class(poh=None, type="number")
+    hail_classes = mwcch_read.get_hail_classes(type="number")
+    hail_class_names = mwcch_read.get_hail_classes(type="name")
     area = np.arange(0, 101, 1)
 
     # vars
@@ -128,7 +127,7 @@ def count_overpasses_per_hour_hailclass_and_area(path, years, months,
     count_overpass = xr.Dataset(
       data_vars=dict(
           N_overpasses=(["year", "month", "day", "hour", "hail_class", "area_perc"], N_overpasses),
-          hail_class_names=(["hail_class"], mwcch_read.get_hail_class(type="name")),
+          hail_class_names=(["hail_class"], hail_class_names),
       ),
       coords=dict(
           year=("year", years),
@@ -163,10 +162,10 @@ def count_overpasses_per_hour_hailclass_and_area(path, years, months,
               mwcch_data = mwcch_read.read(f, variables=["hail_class"]).hail_class.values
 
               # get maximum hail class within this overpass
-              max_hail_class = 0 if np.isnan(np.nanmax(mwcch_data)) else np.nanmax(mwcch_data)
+              max_hail_class = mwcch_read.max_hail_class(mwcch_data, min_pixel=1)
 
               # calculate area percentage covered by overpass
-              area_perc = mwcch_read.get_area_percentage_covered_by_overpass(mwcch_data)
+              area_perc = mwcch_read.area_percentage_covered_by_overpass(mwcch_data)
 
               try:
                 # increase counter at specific sat, year, month, hailclass and area percentage
@@ -203,7 +202,8 @@ def count_overpasses_per_year_hailclass_minpix_and_area(path, years,
   
   else:
     # coords
-    hail_classes = mwcch_read.get_hail_class(type="number")
+    hail_classes = mwcch_read.get_hail_classes(type="number")
+    hail_class_names = mwcch_read.get_hail_classes(type="name")
     min_pixels = np.arange(1, 20, 1)
     area = np.arange(0, 101, 1)
 
@@ -214,7 +214,7 @@ def count_overpasses_per_year_hailclass_minpix_and_area(path, years,
     count_overpass = xr.Dataset(
       data_vars=dict(
           N_overpasses=(["year", "hail_class", "min_pixel", "area_perc"], N_overpasses),
-          hail_class_names=(["hail_class"], mwcch_read.get_hail_class(type="name")),
+          hail_class_names=(["hail_class"], hail_class_names),
       ),
       coords=dict(
           year=("year", years),
@@ -242,13 +242,13 @@ def count_overpasses_per_year_hailclass_minpix_and_area(path, years,
             mwcch_data = mwcch_read.read(f, variables=["hail_class"]).hail_class.values
 
             # calculate area percentage covered by overpass
-            area_perc = mwcch_read.get_area_percentage_covered_by_overpass(mwcch_data)
+            area_perc = mwcch_read.area_percentage_covered_by_overpass(mwcch_data)
 
             # loop over different min pixels
             for minpix in min_pixels:
 
               # get maximum hail class within this overpass
-              max_hail_class = mwcch_read.get_max_hail_class(mwcch_data, min_pixel=minpix)
+              max_hail_class = mwcch_read.max_hail_class(mwcch_data, min_pixel=minpix)
 
               try:
                 # increase counter at specific sat, year, month, hailclass and area percentage
@@ -258,7 +258,6 @@ def count_overpasses_per_year_hailclass_minpix_and_area(path, years,
               
             # count number of processed files
             files_processed += 1
-          return
 
     # print total number of files in this study period
     print("total number of files processed: ", files_processed, flush=True)
