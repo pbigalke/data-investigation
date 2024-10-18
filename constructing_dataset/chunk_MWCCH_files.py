@@ -23,7 +23,6 @@ def chunk_files_by_timerange(files, n_frames, msg_res, gap=15, start_match="foll
     current_chunk = []
     current_start_time = None
     current_end_time = None
-    current_crop = None
     timeseries_length = np.timedelta64((n_frames-1)*msg_res, 'm')
     gap_length = np.timedelta64(gap, 'm')
 
