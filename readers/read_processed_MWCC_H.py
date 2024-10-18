@@ -61,6 +61,12 @@ def get_hail_class(poh=None, type="number"):
 
     return hail_classes
 
+# get the maximum hail class in the hail class array
+def get_max_hail_class(hail_class_values, min_pixel=1):
+    for hail in get_hail_class(type="number")[::-1]:
+        if np.count_nonzero(hail_class_values == hail) >= min_pixel:
+            return hail
+
 # calculate area percentage covered by overpass from probability of hail values
 def get_area_percentage_covered_by_overpass(poh):
     # get total number of pixels
