@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 sys.path.append('..')
 import MWCCH_file_lists_for_studies as mwcch_list
 import readers.read_processed_MWCC_H as mwcch_read
@@ -74,33 +75,7 @@ def chunk_files_by_timerange(files, n_frames, msg_res, gap=15, start_match="foll
 
     return chunks
 
-# %%
-if __name__ == "__main__":
-
-    mwcch_path = mwcch_read.MWCCH_MSGGRID_PATH
-    plotpath = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/chunking_MWCCH_files"
-    if not os.path.exists(plotpath):
-        os.makedirs(plotpath)
-
-    # study period settings
-    years = [2022]
-    months = [6]
-
-    # time series settings
-    msg_res = 15
-    n_frames = 4
-    cropsize = 128
-
-    area_thresholds = np.arange(0, 70, 10)
-    # t = 0
-    gaps = np.arange(15, 70, 15)
-    # g=15
-    
-    start_match=["following", "closest"]
-    chunk_match=["previous", "following", "closest"]
-
-
-    ###### plot chunking of MWCCH files per gap for different area thresholds #######
+def plot_numer_of_MWCCH_chunks_over_gap_per_areathresh(mwcch_path, years, months, n_frames, msg_res, plotpath, area_thresholds, gaps, start_match, chunk_match):
     fig, axes = plt.subplots(2, 4, figsize=(15, 10))
     plot_colors = ['r', 'g', 'b', 'c', 'm', 'y']
     n_max_files = 0
@@ -111,15 +86,11 @@ if __name__ == "__main__":
         count_line = 0
         for start in start_match:
             for chunk in chunk_match:
-                # print("start match:", start, "chunk match:", chunk)
-                # for t in area_thresholds:
                 n_files = []
                 n_chunks = []
                 for g in gaps:
                     mwcch_files = mwcch_list.read_mwcch_files_for_study_settings(mwcch_path, years, months, thresh)
                     chunks = chunk_files_by_timerange(mwcch_files, n_frames, msg_res, start_match=start, chunk_match=chunk, gap=g)
-                    # print("area threshold:", t, "# files:", len(mwcch_files), "# chunks:", len(chunks))
-                    # print("gap:", g, "# files:", len(mwcch_files), "# chunks:", len(chunks))
                     n_files.append(len(mwcch_files))
                     n_chunks.append(len(chunks))
                     if t == 0:
@@ -152,7 +123,7 @@ if __name__ == "__main__":
     plt.show()
     plt.close()
 
-    # ####### plot chunking of MWCCH files per area thresh for different gaps #######
+def plot_number_of_MWCCH_chunks_over_areathreh_per_gap(mwcch_path, years, months, n_frames, msg_res, plotpath, area_thresholds, gaps, start_match, chunk_match):
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     plot_colors = ['r', 'g', 'b', 'c', 'm', 'y']
     n_max_files = 0
@@ -162,15 +133,11 @@ if __name__ == "__main__":
         count_line = 0
         for start in start_match:
             for chunk in chunk_match:
-                # print("start match:", start, "chunk match:", chunk)
-                # for t in area_thresholds:
                 n_files = []
                 n_chunks = []
                 for t, thresh in enumerate(area_thresholds):
                     mwcch_files = mwcch_list.read_mwcch_files_for_study_settings(mwcch_path, years, months, thresh)
                     chunks = chunk_files_by_timerange(mwcch_files, n_frames, msg_res, start_match=start, chunk_match=chunk, gap=gap)
-                    # print("area threshold:", t, "# files:", len(mwcch_files), "# chunks:", len(chunks))
-                    # print("gap:", g, "# files:", len(mwcch_files), "# chunks:", len(chunks))
                     n_files.append(len(mwcch_files))
                     n_chunks.append(len(chunks))
                     if t == 0:
@@ -212,8 +179,94 @@ if __name__ == "__main__":
     plt.show()
     plt.close()
 
+def plot_chunksize_distribution_per_area_thresh(mwcch_path, years, months, n_frames, msg_res, plotpath, area_thresholds):
+    fig, ax = plt.subplots(1, figsize=(6, 4))
+    ax.set_title(f"gap: 15 min, timeseries length: {n_frames} frames")
+    
+    max_expected_chunk_size = 5
+    counts = np.zeros((len(area_thresholds), max_expected_chunk_size))
+
+    for t, thresh in enumerate(area_thresholds):
+
+        # read in all mwcc-h files for study settings
+        mwcch_files = mwcch_list.read_mwcch_files_for_study_settings(mwcch_path, years, months, thresh)
+        # group according to time range
+        chunks = chunk_files_by_timerange(mwcch_files, n_frames, msg_res, 
+                                            start_match="following", chunk_match="previous", gap=15)
+        
+        # get chunk sizes
+        chunk_sizes = np.array([len(chunk) for chunk in chunks])
+
+        # sizes occuring in this setting
+        sizes = np.unique(chunk_sizes)
+
+        for size in sizes:
+            counts[t, size-1] = np.count_nonzero(chunk_sizes == size)
+
+    # plot heat map with imshow of chunk sizes per area threshold
+    c = ax.imshow(counts, cmap='viridis', aspect='auto', interpolation='nearest', origin='lower', 
+                  norm=mpl.colors.LogNorm(vmin=1, vmax=280))
+
+    # plot colorbar
+    fig.colorbar(c, ax=ax, orientation='vertical', label='number of chunks')
+
+    # write count as number in each cell of the heatmap
+    for i in range(len(area_thresholds)):
+        for j in range(max_expected_chunk_size):
+            ax.text(j, i, int(counts[i, j]), ha='center', va='center', color='white')
+
+    # write text with total number of chunks in upper right corner
+    ax.text(0.95, 0.95, f"# chunks: {int(np.sum(counts))}", transform=ax.transAxes, ha='right', va='top')
+
+    # set xticks as chunk sizes
+    ax.set_xticks(np.arange(0, max_expected_chunk_size), labels=np.arange(1, max_expected_chunk_size+1))
+    ax.set_xlabel("chunk size")
+
+    # set yticks as area thresholds
+    ax.set_yticks(np.arange(0, len(area_thresholds)), labels=area_thresholds)
+    ax.set_ylabel("area threshold [%]")
+
+    plt.savefig(f"{plotpath}/chunk_size_distribution_per_area_thresh_{n_frames}frames.png")
+    plt.show()
+    plt.close()
 
 
+# %%
+if __name__ == "__main__":
 
+    mwcch_path = mwcch_read.MWCCH_MSGGRID_PATH
+    plotpath = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/chunking_MWCCH_files"
+    if not os.path.exists(plotpath):
+        os.makedirs(plotpath)
+
+    # study period settings
+    years = [2022]
+    months = [6]
+
+    # time series settings
+    msg_res = 15
+    n_frames = 4
+
+    area_thresholds = np.arange(0, 70, 10)
+    # t = 0
+    gaps = np.arange(15, 70, 15)
+    # g=15
+    
+    start_match=["following", "closest"]
+    chunk_match=["previous", "following", "closest"]
+
+
+    # ###### plot chunking of MWCCH files per gap for different area thresholds #######
+    # plot_numer_of_MWCCH_chunks_over_gap_per_areathresh(mwcch_path, years, months, n_frames, msg_res, plotpath, 
+    #                                                    area_thresholds, gaps, start_match, chunk_match)
+    
+    # # ####### plot chunking of MWCCH files per area thresh for different gaps #######
+    # plot_number_of_MWCCH_chunks_over_areathreh_per_gap(mwcch_path, years, months, n_frames, msg_res, plotpath, 
+    #                                                    area_thresholds, gaps, start_match, chunk_match)
+    
+
+    # ####### plot chunk size per area thresh #######
+    for n_frames in np.arange(4, 9, 1):
+        plot_chunksize_distribution_per_area_thresh(mwcch_path, years, months, n_frames, msg_res, plotpath, area_thresholds)
 
 # %%
