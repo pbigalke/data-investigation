@@ -4,146 +4,144 @@ import os
 import sys
 sys.path.append('..')
 import readers.read_MSG as msg_read
+from config. domain_info import domain_expats, domain_expats_hail
 import readers.read_processed_MWCC_H as mwcch_read
 import matching_data.collect_matching_files as match
 import helpers.datetime_helper as hlp
 import constructing_dataset.crop_time_series_over_hail as tscrop
 import plotting.plot_MWCC_H as mwcc_plt
 
-# %%
-def plot_different_crop_positions(msg_path, mwcch_path, output_path, years, months, days, msg_res, mode="maxhailarea", mwcch_mode="poh"):
-    n_frames = 1
-    cropsize = 128
-    channels = {'WV_062-IR_108': {"vmin":-60, "vmax":5}, 
-                'IR_108': {"vmin":200, "vmax":280}, 
-    }  # 
+c_hail_area = "cyan"
+c_over = "lime"
+c_diffWVIR = "gold"
+c_ot = "red"
 
-    # defining colors for crop outlines
-    c_hail_area = "gold"
-    c_diffWVIR = "cyan"
-    c_ot = "red"
+# %%
+def plot_different_crop_positions(msg_timestamp_data, mwcch_data, cropsize, min_pixel, output_path, 
+                                  crops=["maxhailarea"], recenter=False, mwcch_mode="hail_class"):
+
+    # get area coverage
+    overpass_area = mwcch_read.area_percentage_covered_by_overpass(mwcch_data.hail_class.values)
+
+    mark_points=[]
+    draw_subdomains=[]
+
+    for crop in crops:
+        if crop == "maxhailarea":
+            try:
+                # get crop extent over ------------------------------------------------------------------- max hail area
+                cg_lon, cg_lat, minlon, maxlon, minlat, maxlat = \
+                    tscrop.get_crop_extent_over_maxhailarea(mwcch_data, cropsize, min_pixel=min_pixel)
+            except TypeError:
+                print("ERROR: crop extent could not be calculated.")
+                continue
+
+            mark_points.append([cg_lon, cg_lat, c_hail_area, 'x'])
+            draw_subdomains.append([minlon, maxlon, minlat, maxlat, c_hail_area, '-'])
+
+            if recenter:
+                # get crop extent over ------------------------------------------------------------------- diff WV-IR within crop
+                cg_lon_diff, cg_lat_diff, minlon_diff, maxlon_diff, minlat_diff, maxlat_diff = \
+                    tscrop.recenter_crop_over_highest_clouds(msg_timestamp_data, [minlon, maxlon, minlat, maxlat])
+
+                # get crop extent over ------------------------------------------------------------------- OT area within crop
+                cg_lon_OT, cg_lat_OT, minlon_OT, maxlon_OT, minlat_OT, maxlat_OT = \
+                    tscrop.recenter_crop_over_highest_clouds(msg_timestamp_data, [minlon, maxlon, minlat, maxlat], mode='OT')
+
+                mark_points.extend([[cg_lon_diff, cg_lat_diff, c_diffWVIR, 'x'], 
+                                    [cg_lon_OT, cg_lat_OT, c_ot, 'x']])
+                draw_subdomains.extend([[minlon_diff, maxlon_diff, minlat_diff, maxlat_diff, c_diffWVIR, '-'],
+                                        [minlon_OT, maxlon_OT, minlat_OT, maxlat_OT, c_ot, '-']])
+
+                
+        elif crop == "overpassarea":
+            # get crop extent over ------------------------------------------------------------------- overpass area
+            cg_lon_over, cg_lat_over, minlon_over, maxlon_over, minlat_over, maxlat_over = \
+                tscrop.get_crop_extent_over_overpassarea(mwcch_data, cropsize)
+            mark_points.append([cg_lon_over, cg_lat_over, c_over, 'x'])
+            draw_subdomains.append([minlon_over, maxlon_over, minlat_over, maxlat_over, c_over, '-'])
+
+
+    # ---------------------------------------------------------------------
+    # loop over channels
+    for channel in channels:
+
+        # get data from channel
+        if "-" in channel:
+            chan1 = channel.split("-")[0]
+            chan2 = channel.split("-")[1]
+            print(chan1, chan2)
+            msg_tb = msg_timestamp_data[chan1] - msg_timestamp_data[chan2]
+        else:
+            msg_tb = msg_timestamp_data[channel]
+
+
+        # --------------------------------------------------------------------- plot MSG, MWCCH and crops
+        # plot last timestamp with hail area crop
+        dt = hlp.get_datetimestring_from_npdatetime(msg_timestamp_data.time.values)
+        title_str = f"{dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}, coverage: {overpass_area} %"
+        outname = f"{output_path}/{dt}_{channel}_{mwcch_mode}_crop_over" + "".join([f"_{crop}" for crop in crops])
+        if recenter:
+            outname += "_recentered"
+
+        # plot crops over MSG and MWCC-H
+        mwcc_plt.plot_mwcch_over_MSG(msg_timestamp_data.lon.values, msg_timestamp_data.lat.values, msg_tb.values, channel, 
+                                    mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, mwcch_mode=mwcch_mode,
+                                    mark_points=mark_points, draw_subdomains=draw_subdomains, 
+                                    vmin=channels[channel]["vmin"], vmax=channels[channel]["vmax"], 
+                                    domain=domain_expats, title=title_str, path_out=None) #f"{outname}.png")
+
+
+
+
+# %%
+if __name__ == "__main__":
+    # mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
+    msg_path = msg_read.MSG_PATH
+    mwcch_path = mwcch_read.MWCCH_MSGGRID_PATH
+
+    output_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/crop_positions"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    years = [2022]
+    months = [6]
+    days = [5]
+    msg_res = 15
+    cropsize = 128
+    min_pixel = 1
+    channels = {#'WV_062-IR_108': {"vmin":-60, "vmax":5}, 
+                'IR_108': {"vmin":200, "vmax":280}, 
+    }
+    # extract unique channels that should be read in
+    needed_channels = [ch.split('-') for ch in channels.keys()]
+    unique_channels = list(set(item for sublist in needed_channels for item in sublist))
 
     # ---------------------------------------------------------------------
     # load all mwcc-h files in study period
     mwcch_files = match.get_files_in_study_period(mwcch_path, years, months=months, days=days)
     print(len(mwcch_files))
 
-
     # loop over mwcch files
-    for f in mwcch_files:
-        print(f)
+    for file in mwcch_files[:3]:
+        print()
+        print(os.path.basename(file))
 
         # ---------------------------------------------------------------------
         # read in mwcc_file
-        mwcch_data = mwcch_read.read(f)
-
-        max_hail_class = mwcch_read.get_hail_class(np.nanmax(mwcch_data.POH.values))
-        print("max hail class, ", max_hail_class)
-        if max_hail_class == "no_hail":
-            print("no hail in this scene, implement random cropping here")
-            # nur über overpass area ausschneiden sonst verfälscht
-            continue
-            
-        # ---------------------------------------------------------------------
-        # read in MSG time series ending in mwcc-h timestamp
+        mwcch_data = mwcch_read.read(file)
 
         # get end time of overpass
-        mwcch_end = mwcch_data.datetime.values[-1]
-        # TODO: this does not work with new regridded data
+        mwcch_end = mwcch_data.end_scan
 
-        # get corresponding MSG time series
-        msg_data = tscrop.get_MSG_timeseries(msg_path, mwcch_end, msg_res, n_frames)
+        # get corresponding MSG timestamp and file
+        msg_timestamp = match.get_closest_MSG_timestamps(mwcch_end, which="following", msg_res=msg_res)
+        msg_file = msg_read.get_MSG_files_from_timestamps(msg_timestamp)[0]
 
-        if mode == "overpassarea":
-            # get crop extent over ------------------------------------------------------------------- overpass area
-            tscrop.get_crop_extent_over_overpassarea(msg_data, mwcch_data, cropsize)
+        # read in MSG data and filter for timestamp
+        msg_timestamp_data = msg_read.read(msg_file, channels=unique_channels).sel(time=msg_timestamp)
 
-        if mode == "maxhailarea":
-            try:
-                # get crop extent over ------------------------------------------------------------------- max hail area
-                cg_lon, cg_lat, minlon, maxlon, minlat, maxlat = \
-                    tscrop.get_crop_extent_over_maxhailarea(msg_data, mwcch_data, cropsize)
-            except TypeError:
-                print("ERROR: crop extent could not be calculated.")
-                continue
-            # get crop extent over ------------------------------------------------------------------- diff WV-IR within crop
-            cg_lon_diff, cg_lat_diff, minlon_diff, maxlon_diff, minlat_diff, maxlat_diff = \
-                tscrop.recenter_crop_over_highest_clouds(msg_data, [minlon, maxlon, minlat, maxlat])
-
-            # get crop extent over ------------------------------------------------------------------- OT area within crop
-            cg_lon_OT, cg_lat_OT, minlon_OT, maxlon_OT, minlat_OT, maxlat_OT = \
-                tscrop.recenter_crop_over_highest_clouds(msg_data, [minlon, maxlon, minlat, maxlat], mode='OT')
-
-        # ---------------------------------------------------------------------
-        # loop over channels
-        for channel in channels:
-
-            # get data from channel
-            if "-" in channel:
-                chan1 = channel.split("-")[0]
-                chan2 = channel.split("-")[1]
-                print(chan1, chan2)
-                msg_tb = msg_data[chan1] - msg_data[chan2]
-            else:
-                msg_tb = msg_data[channel]
-
-            # ---------------------------------------------------------------------
-            # plot for all timestamps in time series
-            for t, ts in enumerate(msg_data.time.values[::-1]):
-                if t == 0:
-                    # --------------------------------------------------------------------- plot crop over max hail area
-                    # plot last timestamp with hail area crop
-                    dt = hlp.get_datetimestring_from_npdatetime(ts)
-                    title = f'crop over {mode}, {dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
-                    outpath = f"{output_path}/crop_over_{mode}"
-                    if not os.path.exists(outpath): os.makedirs(outpath)
-                    outname = f"{outpath}/{dt}_{channel}_crop_over_{mode}_{mwcch_mode}.png"
-
-                    # # plot crops over MSG and MWCC-H
-                    # mwcc_plt.plot_mwcch_over_MSG(msg_data.lon.values, msg_data.lat.values, msg_tb.sel(time=ts), channel, 
-                    #                             mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, mwcch_mode=mwcch_mode, 
-                    #                             mark_points=[[cg_lon, cg_lat, c_hail_area, 'x']], 
-                    #                             draw_subdomains=[[minlon, maxlon, minlat, maxlat, c_hail_area, '-']], 
-                    #                             vmin=channels[channel]["vmin"], vmax=channels[channel]["vmax"], 
-                    #                             title=title, path_out=outname)
-
-                    # --------------------------------------------------------------------- plot different ways of cropping
-                    # plot last timestamp with hail area crop
-                    dt = hlp.get_datetimestring_from_npdatetime(ts)
-                    title = f'crop max hail area, {dt[:4]}-{dt[4:6]}-{dt[6:8]} {dt[-4:-2]}:{dt[-2:]}'
-                    outpath = f"{output_path}/try_out_crop_positions"
-                    if not os.path.exists(outpath): os.makedirs(outpath)
-                    outname = f"{outpath}/{dt}_{channel}_crop_over_{mode}_{mwcch_mode}_WV-IR_or_OT.png"
-
-                    # plot crops over MSG and MWCC-H
-                    mwcc_plt.plot_mwcch_over_MSG(msg_data.lon.values, msg_data.lat.values, msg_tb.sel(time=ts), channel, 
-                                                mwcch_data.lon.values, mwcch_data.lat.values, mwcch_data.POH.values, mwcch_mode=mwcch_mode,
-                                                mark_points=[[cg_lon, cg_lat, c_hail_area, 'x'], 
-                                                            [cg_lon_diff, cg_lat_diff, c_diffWVIR, 'x'], 
-                                                            [cg_lon_OT, cg_lat_OT, c_ot, 'x']], 
-                                                draw_subdomains=[[minlon, maxlon, minlat, maxlat, c_hail_area, '-'],
-                                                                [minlon_diff, maxlon_diff, minlat_diff, maxlat_diff, c_diffWVIR, '-'],
-                                                                [minlon_OT, maxlon_OT, minlat_OT, maxlat_OT, c_ot, '-']], 
-                                                vmin=channels[channel]["vmin"], vmax=channels[channel]["vmax"], 
-                                                title=title, path_out=outname)
-
-
-
-
-# %%
-# mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
-msg_path = msg_read.MSG_PATH
-mwcch_path = mwcch_read.MWCCH_PATH
-
-output_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/casestudy_20220605"
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
-
-years = [2022]
-months = [6]
-days = [5]
-msg_res = 15
-
-# plot_different_crop_positions(msg_path, mwcch_path, output_path, years, months, days, msg_res)
-plot_different_crop_positions(msg_path, mwcch_path, output_path, years, months, days, msg_res, mwcch_mode="hail_class")
+        # plot_different_crop_positions(msg_path, mwcch_path, output_path, years, months, days, msg_res)
+        plot_different_crop_positions(msg_timestamp_data, mwcch_data, cropsize, min_pixel, output_path, 
+                                      crops=["maxhailarea", "overpassarea"], mwcch_mode="hail_class")
 # %%
