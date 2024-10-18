@@ -76,9 +76,22 @@ def get_MSG_timeseries(overpass_end_time, msg_res, n_frames):
     return msg_time_series
 
 # %%
-def get_center_of_mass_for_variable(lon, lat, variable):
-    cg_lat = np.sum(lat * variable) / np.sum(variable)
-    cg_lon = np.sum(lon * variable) / np.sum(variable)
+def get_center_of_mass_for_variable(msg_lon, msg_lat, variable):
+    # Create 2D longitude and latitude arrays using meshgrid
+    lon2d, lat2d = np.meshgrid(msg_lon, msg_lat)
+    
+    # Create a mask to filter out NaN values
+    mask = ~np.isnan(variable)
+    
+    # Apply the mask to the 2D latitude, longitude, and hail class values
+    filtered_lon = lon2d[mask]
+    filtered_lat = lat2d[mask]
+    filtered_var = variable[mask]
+    
+    # Calculate the center of mass excluding NaN values
+    cg_lat = np.sum(filtered_lat * filtered_var) / np.sum(filtered_var)
+    cg_lon = np.sum(filtered_lon * filtered_var) / np.sum(filtered_var)
+
     return cg_lon, cg_lat
 
 def get_closest_index(arr, val):
@@ -124,52 +137,49 @@ def get_crop_extent_from_center_choords(msg_lon, msg_lat, loc_lon, loc_lat, crop
 
     return lon_min, lon_max, lat_min, lat_max
 
-def get_crop_extent_over_maxhailarea(msg_timeseries, mwcch_data, cropsize):
-
+def get_crop_extent_over_maxhailarea(mwcch_data, cropsize, min_pixel=1):
+    ###### does only work for MSG-regridded MWCC-H data ######
+    
     # get max hail class in mwcch data
-    max_hail_class = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values), type="name")
-    max_hail_class_number = mwcch_read.get_hail_class(np.max(mwcch_data.POH.values), type="number")
-
-    # if no hail is present TODO: implement solution for this case
-    if max_hail_class == "no_hail":
-        print("no hail in this scene, implement random cropping here")
-        # nur über overpass area ausschneiden sonst verfälscht
-        return None
+    max_hail_class_number = mwcch_read.max_hail_class(mwcch_data.hail_class.values, min_pixel=min_pixel)
     
     # mask mwcc-h data where maximum hail class occurs
-    if isinstance(mwcch_data.hail_class.values[0], str):
-        masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class)
-    else:
-        masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class_number)
+    masked_data = mwcch_data.where(mwcch_data.hail_class == max_hail_class_number, drop=True)
+
+    # set all hail class values to 1 where is not NaN (to make sure that the center of mass is calculated correctly)
+    masked_data['hail_class'] = masked_data.hail_class.where(np.isnan(masked_data.hail_class), 1)
 
     # calculate center of mass for variable
-    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.POH)
-    
+    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.hail_class.values)
+
     # get extent of crop over hail area
-    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(mwcch_data.lon.values, mwcch_data.lat.values, 
                                                                          cg_lon, cg_lat, cropsize)
-    return cg_lon.values, cg_lat.values, minlon, maxlon, minlat, maxlat
 
-def get_crop_extent_over_overpassarea(msg_timeseries, mwcch_data, cropsize):
+    return cg_lon, cg_lat, minlon, maxlon, minlat, maxlat
+
+def get_crop_extent_over_overpassarea(mwcch_data, cropsize):
+    ###### does only work for MSG-regridded MWCC-H data ######
     
-    # mask mwcc-h data where not NaN
-    masked_data = mwcch_data.where(mwcch_data.poh != np.nan)
+    # mask mwcc-h data where maximum hail class occurs
+    masked_data = mwcch_data.where(mwcch_data.hail_class >= 0, drop=True)
 
-    print(masked_data)
-    return
+    # set all hail class values to 1 where is not NaN (to make sure that the center of mass is calculated correctly)
+    masked_data['hail_class'] = masked_data.hail_class.where(np.isnan(masked_data.hail_class), 1)
 
     # calculate center of mass for variable
-    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.POH)
-    
-    # get extent of crop over hail area
-    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
-                                                                         cg_lon, cg_lat, cropsize)
-    return cg_lon.values, cg_lat.values, minlon, maxlon, minlat, maxlat
+    cg_lon, cg_lat = get_center_of_mass_for_variable(masked_data.lon, masked_data.lat, masked_data.hail_class.values)
 
-def recenter_crop_over_highest_clouds(msg_timeseries, crop_extent, mode="all"):
+    # get extent of crop over hail area
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(mwcch_data.lon.values, mwcch_data.lat.values, 
+                                                                         cg_lon, cg_lat, cropsize)
+    
+    return cg_lon, cg_lat, minlon, maxlon, minlat, maxlat
+
+def recenter_crop_over_highest_clouds(msg_timestamp_data, crop_extent, mode="all"):
 
     # get difference between 6.2 and 10.8 channels
-    diffWVIR = msg_timeseries.WV_062.isel(time=-1) - msg_timeseries.IR_108.isel(time=-1)
+    diffWVIR = msg_timestamp_data.WV_062 - msg_timestamp_data.IR_108
 
     # only lokk at values within original crop over hail area
     diffWVIR_in_crop = diffWVIR.sel(lon=slice(crop_extent[0], crop_extent[1]), lat=slice(crop_extent[2], crop_extent[3]))
@@ -187,7 +197,7 @@ def recenter_crop_over_highest_clouds(msg_timeseries, crop_extent, mode="all"):
     cg_lat_recentered = np.sum(diffWVIR_in_crop.lat * diffWVIR_in_crop) / np.sum(diffWVIR_in_crop)
 
     # overwrite hail area crop with new recentered crop extent
-    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timeseries.lon.values, msg_timeseries.lat.values, 
+    minlon, maxlon, minlat, maxlat = get_crop_extent_from_center_choords(msg_timestamp_data.lon.values, msg_timestamp_data.lat.values, 
                                                                             cg_lon_recentered, cg_lat_recentered, cropsize)
     
     return cg_lon_recentered.values, cg_lat_recentered.values, minlon, maxlon, minlat, maxlat
