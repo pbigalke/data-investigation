@@ -191,6 +191,82 @@ def count_overpasses_per_hour_hailclass_and_area(path, years, months,
     count_overpass.to_netcdf(counter_filename)
     return count_overpass
 
+def count_overpasses_per_year_hailclass_minpix_and_area(path, years, 
+                                                output_filename="overpasses_per_year_hailclass_minpix_and_covered_area",
+                                                overwrite=False):
+
+  counter_filename = f"{path}/statistics/{output_filename}.nc"
+  if os.path.exists(counter_filename) and not overwrite:
+    print("thingy is here")
+    with xr.load_dataset(counter_filename) as counter:
+      return counter
+  
+  else:
+    # coords
+    hail_classes = mwcch_read.get_hail_class(type="number")
+    min_pixels = np.arange(1, 20, 1)
+    area = np.arange(0, 101, 1)
+
+    # vars
+    N_overpasses = np.zeros((len(years), len(hail_classes), len(min_pixels), len(area)))
+    
+    # create dataset
+    count_overpass = xr.Dataset(
+      data_vars=dict(
+          N_overpasses=(["year", "hail_class", "min_pixel", "area_perc"], N_overpasses),
+          hail_class_names=(["hail_class"], mwcch_read.get_hail_class(type="name")),
+      ),
+      coords=dict(
+          year=("year", years),
+          hail_class=("hail_class", hail_classes),
+          min_pixel=("min_pixel", min_pixels),
+          area_perc=("area_perc", area),
+     ),
+    )
+
+    # start loop over all folders (years, months, days)
+    files_processed = 0
+    for year in years:
+      for month in np.arange(4, 10, 1):
+
+        path_month = f"{path}/{year}/{month:02}"
+        files = sorted(glob.glob(f"{path_month}/*/*.nc"))
+        
+        if len(files) > 0:
+          for f in files:
+            
+            if files_processed % 1000 == 0:
+              print(f"{files_processed}", flush=True)
+
+            # read in hail class data
+            mwcch_data = mwcch_read.read(f, variables=["hail_class"]).hail_class.values
+
+            # calculate area percentage covered by overpass
+            area_perc = mwcch_read.get_area_percentage_covered_by_overpass(mwcch_data)
+
+            # loop over different min pixels
+            for minpix in min_pixels:
+
+              # get maximum hail class within this overpass
+              max_hail_class = mwcch_read.get_max_hail_class(mwcch_data, min_pixel=minpix)
+
+              try:
+                # increase counter at specific sat, year, month, hailclass and area percentage
+                count_overpass.N_overpasses.loc[dict(year=year, hail_class=max_hail_class, min_pixel=minpix, area_perc=area_perc)] += 1
+              except KeyError:
+                print("There was a key error (probably due to hail class and nans) in file: ", f)
+              
+            # count number of processed files
+            files_processed += 1
+          return
+
+    # print total number of files in this study period
+    print("total number of files processed: ", files_processed, flush=True)
+
+    # save to file so that we don't need to run this again while creating the plots
+    count_overpass.to_netcdf(counter_filename)
+    return count_overpass
+
 
 def set_nonvalid_datetimes_to_nan(count_overpass):
   
@@ -233,16 +309,23 @@ if __name__ == "__main__":
   years = np.arange(1999, 2024, 1).astype(int)
   months = np.arange(4, 10, 1).astype(int)
 
-  print("counting overpasses per year, hour, hail class, area percentage and satellite")
-  count_overpasses_per_year_hour_hailclass_area_and_sat(datapath, years,
-                                                      output_filename="overpasses_per_year_hour_hailclass_covered_area_sat",
-                                                      overwrite=True)
-  
-  print("counting overpasses per hour, hail class and area percentage")
-  count_overpasses_per_hour_hailclass_and_area(datapath, years, months,
-                                              output_filename="overpasses_per_hour_hailclass_and_covered_area",
-                                              overwrite=True)
-  
-  print("creating smaller counter files")
-  create_smaller_counter_from_larger_one()
+  # print("counting overpasses per year, hail class, min_pixel and area percentage")
+  count_overpasses_per_year_hailclass_minpix_and_area(datapath, years, 
+                                                output_filename="overpasses_per_year_hailclass_minpix_and_covered_area",
+                                                overwrite=False)
 
+  # print("counting overpasses per year, hour, hail class, area percentage and satellite")
+  # count_overpasses_per_year_hour_hailclass_area_and_sat(datapath, years,
+  #                                                     output_filename="overpasses_per_year_hour_hailclass_covered_area_sat",
+  #                                                     overwrite=True)
+  
+  # print("counting overpasses per hour, hail class and area percentage")
+  # count_overpasses_per_hour_hailclass_and_area(datapath, years, months,
+  #                                             output_filename="overpasses_per_hour_hailclass_and_covered_area",
+  #                                             overwrite=True)
+  
+  # print("creating smaller counter files")
+  # create_smaller_counter_from_larger_one()
+
+
+# %%
