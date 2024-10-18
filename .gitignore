@@ -1,4 +1,8 @@
 output/*
 
 # all interactive python shells of VS code Jupyter extension
-*/__pycache__/*.pyc
+__pycache__
+
+*.pyc
+
+nohup.out
