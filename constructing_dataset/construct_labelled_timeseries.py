@@ -106,16 +106,18 @@ def construct_labelled_MSG_timeseries(years, months, area_threshold, msg_res, n_
     # ---------------------------------------------------------------- get all MWCC-H files
     # load all mwcc-h files in study period
     mwcch_files = mwcch_list.read_mwcch_files_for_study_settings(mwcch_path, years, months, area_threshold=area_threshold)
+    print(f"total number of MWCC-H files in study period: {len(mwcch_files)}")
 
     # ---------------------------------------------------------------- group files by timeseries
     # chunk files that are within same timeseries
     mwcch_chunks = mwcch_chunk.chunk_files_by_timerange(mwcch_files, n_frames, msg_res, gap=gap)
+    print(f"number of timeseries: {len(mwcch_chunks)}")
 
     # ---------------------------------------------------------------- loop over timeseries groups
     # loop over mwcch chunks
     for g, group in enumerate(mwcch_chunks):
         if g % 1000 == 0:
-            print(f"processing timeseries {g}/{len(mwcch_chunks)}", flush=True)
+            print(f"---- processing timeseries {g}/{len(mwcch_chunks)}", flush=True)
 
         try:
             # ------------------------------------------------------------ read last MWCC-H
@@ -173,18 +175,22 @@ if __name__ == "__main__":
     # study settings
     years = np.arange(2006, 2024, 1)
     months = np.arange(4, 10, 1)
+    print("study period: ", years, months)
     
     # MWCC-H filters
     area_threshold = 30
+    print("area threshold: ", area_threshold)
 
     # time series settings
     msg_res = 15
     n_frames = 4
     gap = 15
+    print(f"MSG timeseries settings: resolution {msg_res}, n_frames {n_frames}, gap {gap}")
 
     # cropping settings
     cropsize = 128
     min_pix = 5
+    print(f"crop settings: cropsize {cropsize}, min_pix {min_pix}")
 
     # construct dataset
     construct_labelled_MSG_timeseries(years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix)
