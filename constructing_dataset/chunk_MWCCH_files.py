@@ -11,7 +11,7 @@ import matching_data.collect_matching_files as match
 
 
 # %%
-def chunk_files_by_timerange(files, n_frames, msg_res, gap=15, start_match="following", chunk_match="previous", cropsize=128):
+def chunk_files_by_timerange(files, n_frames, msg_res, gap=15, start_match="following", chunk_match="previous"):
 
     # Parse timestamps of scanning end time
     files_with_timestamps = [(file, mwcch_read.get_scan_datetime_from_mwcch_filepath(file, which="end")) for file in files]
