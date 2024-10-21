@@ -612,106 +612,166 @@ def satellite_overpasses_per_area_thresh_and_year(overpass_hailclass_hour_area_s
 
 # %%
 # plot the distribution of hail classes per min_pixel
-def hailclass_distribution_per_min_pixel(years):
+def hailclass_distribution_per_min_pixel_for_areathresh():
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_minpix_and_covered_area.nc"
   overpass_hailclass_minpix_area = load_counter_file(counter_file)
 
-  # different thresholds
-  area_thresh = [0, 10, 20, 30, 40, 50, 60]
-  # minpixel = np.arange(1, 21, 1)
-  # out = f"{plotpath}/hail_class_distribution_per_areathresh_{years[0]}-{years[-1]}_hailclasses_separated.png"
-  # plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh=area_thresh, 
-  #                                            year_start=years[0], year_end=years[-1], output_name=out)
-
-def plot_hailclass_distribution_per_min_pixel(overpass_hailclass_area, area_thresh, 
-                                               year_start=2006, year_end=2023, output_name=None, 
-                                               figsize=(15, 5)):
-  return "needs to be implemented"
-  # f, axes = plt.subplots(1, 2, layout='constrained', width_ratios=[2, 3])
-  # f.set_figheight(figsize[1])
-  # f.set_figwidth(figsize[0])
-  # # ax1.set_title("distribution of hail classes per area threshold")
-
-  # # select the data for the given year range and sum over all years
-  # overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, year_end)).sum(dim="year")
-
-  # # get hail class names
-  # hail_class_names = mwcch_read.get_hail_classes(type="name")
-
-  # # devide into non-hail and hail classes
-  # hail_group_idx = [np.array([0, 1]).astype(int), np.arange(2, len(hail_class_names)).astype(int)]
-
-  # # get step between bars and bar width
-  # step = 0.8 / len(area_thresh)
-  # width = 0.75 / len(area_thresh)
-
-  # # loop over area thresholds
-  # for t, thresh in enumerate(area_thresh):
-
-  #   # select only overpasses with certain area threshold and sum over all areas
-  #   area_filtered_data = overpass_hailclass_area.where(overpass_hailclass_area['area_perc'] >= thresh, drop=True)
-
-  #   # get number of overpasses per hail_class over all areas
-  #   hail_counts = area_filtered_data.N_overpasses.sum(dim=["area_perc"])
-
-  #   # get total number of overpasses in dataset
-  #   N_total = hail_counts.sum().values
-      
-  #   # get total number and percentage of overpasses containing this hail class
-  #   n_class = hail_counts.values / N_total * 100
+  area_thresholds = [0, 10, 20, 30, 40, 50, 60]
+  starting_year = [2006]
+  for y in starting_year:
+    out = f"{plotpath}/hail_class_distribution_per_minpixe_{y}onwards.png"
+    plot_hailclass_distribution_per_min_pixel_for_areathresh(overpass_hailclass_minpix_area, area_thresholds, 
+                                               year_start=y, output_name=out)
     
-  #   for g, hail_group in enumerate(hail_group_idx):
-  #     # plot the NON_HAIL classes
-  #     ax1 = axes[g]
-  #     # set x positions for bars
-  #     x_positions = np.arange(0, len(hail_group), 1) + t * step
-  #     # get colors for these hail classes
-  #     colors = [mwcch_plt.hail_class_colors_list[i] for i in hail_group]
-  #     # plot bar for this class
-  #     ax1.bar(x_positions, n_class[hail_group], width, 
-  #             color=colors, align="center")
+    out = f"{plotpath}/number_of_hailclass_files_per_minpixel_and_areathresh_{y}onwards.png"
+    plot_files_per_min_pixel_and_areathresh_for_hailclasses(overpass_hailclass_minpix_area, area_thresholds, 
+                                                            year_start=2006, output_name=out)
+
+def plot_hailclass_distribution_per_min_pixel_for_areathresh(overpass_hailclass_area, area_thresholds, 
+                                                year_start=2006, output_name=None):
+
+  # filter for year_start and sum over all years
+  overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, None)).sum(dim="year")
+
+  # create figure with gridspec
+  n_rows = np.ceil(len(area_thresholds) / 2.).astype(int)
+  n_cols = 2
+  fig = plt.figure(figsize=(5*n_cols, 1.5*n_rows))
+  gs = mpl.gridspec.GridSpec(n_rows, 2*n_cols, width_ratios=[20, 1, 20, 1], 
+                             hspace=0.3, wspace=0.3)
+  
+  # loop over area thresholds
+  for t, thresh in enumerate(area_thresholds):
+
+    # get axis for this area threshold
+    ax = fig.add_subplot(gs[int(t/2), 2*(t%2)])
+    ax.set_title(f"coverage >={thresh}%", fontsize=10)
+
+    # select only overpasses with certain area threshold
+    area_filtered_data = overpass_hailclass_area.where(overpass_hailclass_area['area_perc'] >= thresh, drop=True)
+    # sum over all areas
+    hail_class_counts = area_filtered_data.N_overpasses.sum(dim=["area_perc"])
+
+    # get only hail classes
+    hail_counts = hail_class_counts.where(hail_class_counts.hail_class > 1, drop=True)
+
+    # first entry as reference (min_pixel=1)
+    ref_counts = hail_counts.sel(min_pixel=1).values
+
+    # plot percentage of hail class per area bin and year
+    c = ax.imshow(hail_counts.values-ref_counts[:, np.newaxis], cmap="inferno", origin="lower") #, norm="log")#, 
+                  # vmin=0, vmax=vmax)
+
+    # plot colorbar
+    cbar_ax = fig.add_subplot(gs[int(t/2), 2*(t%2)+1])
+    fig.colorbar(c, cax=cbar_ax, label="# files lost")
+
+  # get hail classes  
+  hail_classes = hail_counts.hail_class.values
+  hail_class_names = mwcch_read.convert_hail_class(hail_classes, to="name")
+
+  # get min pixel values
+  min_pix = overpass_hailclass_area.min_pixel.values
+    
+  # format axes
+  for r in np.arange(n_rows):
+    for c in np.arange(0, 2*n_cols, 2):
+      try:
+        ax = fig.get_axes()[r*2*n_cols + c]
+        ax.set_xticks(np.arange(0, len(min_pix)), labels=min_pix, fontsize=8)
+        ax.set_xlim(-0.5, len(min_pix)-0.5)
+
+        ax.set_yticks(np.arange(0, len(hail_classes)), labels=hail_class_names, fontsize=8)
+        ax.set_ylim(-0.5, len(hail_classes)-0.5)
+
+        if ax.get_subplotspec().is_last_row():
+          ax.set_xlabel("minimum number of pixels")
+
+        if not ax.get_subplotspec().is_first_col():
+          ax.set_yticklabels([])
+      except IndexError:
+        pass
+
+  # plt.tight_layout()
+
+  if output_name is not None:
+    plt.savefig(output_name, bbox_inches='tight')
+    plt.close()
+  else:
+    plt.show()
+    plt.close()
+
+def plot_files_per_min_pixel_and_areathresh_for_hailclasses(overpass_hailclass_area, area_thresh, 
+                                                            year_start=2006, output_name=None):
+ # number of area thresholds
+  N_thresh = len(area_thresh)
+  colors = plt.cm.viridis(np.linspace(0, 1, N_thresh))
+
+  # filter for year_start
+  overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, None))
+  # sum over years
+  overpass_hailclass_area = overpass_hailclass_area.sum(dim="year")
+
+  # get hail class names
+  hail_class_names = mwcch_read.get_hail_classes(type="name")
+
+  # create figure 
+  f, axes = plt.subplots(len(hail_class_names))
+  f.set_figheight(10)
+  f.set_figwidth(10)
+
+  # loop over area thresholds
+  for t, thresh in enumerate(area_thresh):
+
+    # select only overpasses with certain area threshold and sum over all areas
+    area_filtered_data = \
+      overpass_hailclass_area.where(overpass_hailclass_area['area_perc'] >= thresh, drop=True)
+
+    # get number of overpasses per year and hail_class
+    hail_counts = area_filtered_data.N_overpasses.sum(dim=["area_perc"])
+
+    # loop over hail class
+    for hail in hail_counts.hail_class.values:
+      # get axis for this hail class
+      ax = axes[int(hail)]
+
+      # get percentage of overpasses containing this hail class
+      n_class = hail_counts.sel(hail_class=hail).values
       
-  # # set x ticks for area thresholds
-  # for g, hail_group in enumerate(hail_group_idx):
-  #   # select axis
-  #   ax1 = axes[g]
+      # draw development over the years for this hail class
+      ax.plot(hail_counts.min_pixel.values, n_class, 
+              color=colors[t], #mwcch_plt.hail_class_colors_list[int(hail)], 
+              #alpha=1-t*(0.6 / N_thresh), linestyle="-", 
+              label=f">={thresh}%")
+      
+      if t == 0:
+        # add hail class text in the bottom left corner
+        ax.text(0.2, 0.9, mwcch_read.get_hail_classes(type='name')[int(hail)], 
+            transform=ax.transAxes, fontsize=10, verticalalignment='bottom',
+            color="k")
+  
+  # format x axes
+  for ax in axes:
+    if ax == axes[0]:
+      ax.legend(loc=0, frameon=True)
+    if ax == axes[-1]:
+      ax.set_xlabel("minimum number of pixels")
+    ax.set_xticks(hail_counts.min_pixel.values)
+    ax.set_xlim(hail_counts.min_pixel.values[0]-0.5, hail_counts.min_pixel.values[-1]+0.5)
+    if ax != axes[-1]:
+      ax.set_xticklabels([])
+    ax.set_ylabel("number of files")
+    ax.grid(True)
 
-  #   # Add borders around the plot
-  #   for spine in ax1.spines.values():
-  #       spine.set_visible(True)
+  plt.tight_layout()
 
-  #   # first ticks for the area thresholds
-  #   x_thresh = np.arange(0, len(hail_group), 1)
-  #   thresh_ticks = np.sort(np.concatenate([x_thresh + step * t for t in range(len(area_thresh))]))
-  #   thresh_tick_labels = [f"{l}" for l in np.tile(area_thresh, len(hail_group)).flatten()]
-  #   ax1.set_xticks(thresh_ticks, labels=thresh_tick_labels) #, rotation=45, ha='right')
-  #   ax1.set_xlabel("area threshold [%]")
-
-  #   # second ticks for the class names
-  #   sec = ax1.secondary_xaxis(location='top')
-  #   x_class = np.arange(0, len(hail_group), 1) + step * (len(area_thresh) / 2. - 0.5)
-  #   class_names = [hail_class_names[i] for i in hail_group]
-  #   sec.set_xticks(x_class, labels=class_names)
-
-  #   # format the rest of the axes
-  #   ax1.set_xlim(-0.15, len(hail_group))
-  #   ax1.set_ylabel("occurrence [%]")
-  #   # set y axis on the right for second plot
-  #   if g == 1:
-  #     ax1.yaxis.tick_right()
-  #     ax1.yaxis.set_label_position('right')
-  #   ax1.grid(axis='x')
-
-  # # plt.tight_layout()
-
-  # if output_name is not None:
-  #   plt.savefig(output_name, bbox_inches='tight')
-  #   plt.close()
-  # else:
-  #   plt.show()
-  #   plt.close()
-
+  if output_name is not None:
+    plt.savefig(output_name, bbox_inches='tight')
+    plt.close()
+  else:
+    plt.show()
+    plt.close()
 
 # %%
 if __name__ == "__main__":
@@ -731,11 +791,14 @@ if __name__ == "__main__":
   # print("plot hail class distribution per area thresholds for 2006-2023")
   # hailclass_distribution_per_area_thresholds(np.arange(2006, 2024, 1))
 
-  print("plot hail class distribution and development for area threshold")
-  hailclass_distribution_and_development_for_area_threshold()
+  # print("plot hail class distribution and development for area threshold")
+  # hailclass_distribution_and_development_for_area_threshold()
 
   # print("plot overpasses per satellite, year and area threshold")
   # hailclass_overpass_per_satellite_year_and_area_threshold()
+
+  print("plot hail class distribution per min pixel for different area thresholds")
+  hailclass_distribution_per_min_pixel_for_areathresh()
 
 
 # %%
