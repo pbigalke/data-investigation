@@ -1,4 +1,5 @@
 # %%
+import numpy as np
 import os
 import sys
 sys.path.append("..")
@@ -8,9 +9,9 @@ import matching_data.collect_matching_files as match
 # %%
 def get_list_filename(mwcch_path, years, months, area_threshold):
     # make sure years and months are lists
-    if not isinstance(years, list):
+    if not isinstance(years, list) and not isinstance(years, np.ndarray):
         years = [years]
-    if not isinstance(months, list):
+    if not isinstance(months, list) and not isinstance(years, np.ndarray):
         months = [months]
     
     # define output path
