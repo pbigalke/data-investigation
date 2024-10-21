@@ -75,6 +75,8 @@ def chunk_files_by_timerange(files, n_frames, msg_res, gap=15, start_match="foll
 
     return chunks
 
+# %%
+# some plotting functions to analyze chunking of MWCCH files
 def plot_numer_of_MWCCH_chunks_over_gap_per_areathresh(mwcch_path, years, months, n_frames, msg_res, plotpath, area_thresholds, gaps, start_match, chunk_match):
     fig, axes = plt.subplots(2, 4, figsize=(15, 10))
     plot_colors = ['r', 'g', 'b', 'c', 'm', 'y']
