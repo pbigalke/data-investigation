@@ -50,27 +50,20 @@ def get_lon_lat():
         lat = dataset.lat.values
     return lon, lat
 
-def get_MSG_files_from_timestamps(msg_dt):
-    """Get MSG files from timestamps
+def get_MSG_file_from_timestamp(msg_dt):
+    """Get MSG file from timestamp
 
     Args:
-        msg_dt (np.datetime64): timestamps (list or single timestamp)
+        msg_dt (np.datetime64): MSG timestamp
 
     Returns:
-        pathlike: corresponding of MSG files (list or single path)
+        pathlike: corresponding MSG file
     """
-    # check if input is list
-    if not isinstance(msg_dt, list):
-        msg_dt = [msg_dt]
-    
-    msg_files = []
-    # loop over timestamps and get corresponding MSG file
-    for dt in msg_dt:
-        # convert to string
-        dt_str = hlp.get_datestring_from_npdatetime(dt)
+    # convert to string
+    dt_str = hlp.get_datestring_from_npdatetime(msg_dt)
 
-        # get corresponding MSG file containing this timestamp
-        msg_files.append(f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc") #20220615-EXPATS-RG.nc
+    # get corresponding MSG file containing this timestamp
+    msg_file = f"{MSG_PATH}/{dt_str[:4]}/{dt_str[4:6]}/{dt_str}-EXPATS-RG.nc" #20220615-EXPATS-RG.nc
     
-    return msg_files
+    return msg_file
 
