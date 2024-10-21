@@ -75,8 +75,9 @@ def read_mwcch_files_for_study_settings(mwcch_path, years, months, area_threshol
     
     filename = get_list_filename(mwcch_path, years, months, area_threshold)
     if not os.path.exists(filename):
-        print(f"File {filename} does not exist. Please run method " + \
-              "create_file_list_per_area_thresholds() for these study settings first.")
+        print(f"File {filename} does not exist. " + \
+              "Please open the python script constructing_dataset.MWCCH_file_lists_for_studies.py " + \
+              "and run method create_file_list_per_area_thresholds() for these study settings first.")
         return None
 
     with open(filename, 'r') as file:
