@@ -90,16 +90,17 @@ def crop_MSG_timeseries_over_hail_and_save(msg_timeseries, mwcch_data, cropsize,
     # save to given filepath
     msg_timeseries.to_netcdf(filepath)
 
+def folder_from_study_settings(output_path, years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix):
+    folder_path = f"{output_path}/{years[0]}-{years[-1]}_{months[0]}-{months[-1]}_areathresh{area_threshold}_" + \
+            f"res{msg_res}min_{n_frames}frames_gap{gap}min_cropsize{cropsize}_min{min_pix}pix"
+    return folder_path
 
 # %%
-def construct_labelled_MSG_timeseries(years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix):
+def construct_labelled_MSG_timeseries(path, years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix):
     # mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
     mwcch_path = mwcch_read.MWCCH_MSGGRID_PATH
 
-    output_path = f"/net/merisi/pbigalke/data/labelled_MSG_timeseries/" + \
-        f"{years[0]}-{years[-1]}_{months[0]}-{months[-1]}_areathresh{area_threshold}_" + \
-            f"res{msg_res}min_{n_frames}frames_gap{gap}min_" + \
-            f"cropsize{cropsize}_min{min_pix}pix"
+    output_path = folder_from_study_settings(path, years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix)
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
@@ -193,7 +194,8 @@ if __name__ == "__main__":
     print(f"crop settings: cropsize {cropsize}, min_pix {min_pix}")
 
     # construct dataset
-    construct_labelled_MSG_timeseries(years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix)
+    path = f"/net/merisi/pbigalke/data/labelled_MSG_timeseries"
+    construct_labelled_MSG_timeseries(path, years, months, area_threshold, msg_res, n_frames, gap, cropsize, min_pix)
 
     print("total runtime: ", datetime.datetime.now() - start_script_at)
 
