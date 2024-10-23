@@ -52,7 +52,7 @@ def draw_orography_filled(ax, cmap=ORO_GREY, alpha=1., transform=TRANSFORM):
                         alpha=alpha,
                         cmap=cmap)
 
-def draw_map(ax, extent=domain_expats, mode="dark", cities=True):
+def draw_map(ax, extent=domain_expats, mode="dark", cities=False):
     
     if cities:
         plot_cities_expats(ax, 'black', 50)
