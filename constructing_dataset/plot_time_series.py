@@ -48,7 +48,7 @@ def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_fram
             for row, tms in enumerate(label_timeseries):
 
                 # read in MSG_timeseries
-                data_timeserie = msg_read.read(tms, channels)
+                data_timeserie = msg_read.read(tms)
 
                 # get extent of crop [minlon, maxlon, minlat, maxlat]]
                 extent = [data_timeserie.lon.values[0], data_timeserie.lon.values[-1], data_timeserie.lat.values[0], data_timeserie.lat.values[-1]]
@@ -130,7 +130,7 @@ def plot_hail_class_distribution(timeseries_folder, output_name=None, figsize=(8
     p_hail = 0
 
     # loop over hail class
-    for h, hail in enumerate(hail_class_names[:1]):
+    for h, hail in enumerate(hail_class_names):
 
         # get number of this hail class
         n_class = len(glob.glob(f"{timeseries_folder}/{h}_{hail}/*.nc"))
@@ -240,28 +240,31 @@ if __name__ == "__main__":
     # mwcch_path = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
     timeseries_path = f"/net/merisi/pbigalke/data/labelled_MSG_timeseries"
 
-    plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/casestudy_20220605/timeseries"
+    # plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/casestudy_20220605/timeseries"
+    # if not os.path.exists(plot_path):
+    #     os.makedirs(plot_path)
+    # case_study = {
+    #     # study settings
+    #     "years": [2022], #np.arange(2006, 2024, 1)
+    #     "months": [6], #np.arange(4, 10, 1)
+        
+    #     # MWCC-H filters
+    #     "area_threshold": 30, 
+
+    #     # time series settings
+    #     "msg_res": 15,
+    #     "n_frames": 4,
+    #     "gap": 15,
+
+    #     # cropping settings
+    #     "cropsize": 128,
+    #     "min_pix": 5,
+    # }
+    # settings = case_study
+
+    plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/prestudy_timeseries"
     if not os.path.exists(plot_path):
         os.makedirs(plot_path)
-
-    case_study = {
-        # study settings
-        "years": [2022], #np.arange(2006, 2024, 1)
-        "months": [6], #np.arange(4, 10, 1)
-        
-        # MWCC-H filters
-        "area_threshold": 30, 
-
-        # time series settings
-        "msg_res": 15,
-        "n_frames": 4,
-        "gap": 15,
-
-        # cropping settings
-        "cropsize": 128,
-        "min_pix": 5,
-    }
-
     prestudy = {
         # study settings
         "years": np.arange(2006, 2024, 1),
@@ -279,20 +282,18 @@ if __name__ == "__main__":
         "cropsize": 128,
         "min_pix": 5,
     }
-
-    settings = case_study
+    settings = prestudy
 
 
     timeseries_folder = clt.folder_from_study_settings(timeseries_path, settings["years"], settings["months"], 
                                                        settings["area_threshold"], settings["msg_res"], settings["n_frames"], 
                                                        settings["gap"], settings["cropsize"], settings["min_pix"])
-    print(timeseries_folder)
 
-    # # plot hail class distribution
-    # plot_hail_class_distribution(timeseries_folder, output_name=f"{plot_path}/hail_class_distribution.png")
+    # plot hail class distribution
+    plot_hail_class_distribution(timeseries_folder, output_name=f"{plot_path}/hail_class_distribution.png")
 
-    # # plot data distribution over years
-    # plot_yearly_hailclass_distribution(timeseries_folder, settings["years"], output_name=f"{plot_path}/yearly_hailclass_distribution.png")
+    # plot data distribution over years
+    plot_yearly_hailclass_distribution(timeseries_folder, settings["years"], output_name=f"{plot_path}/yearly_hailclass_distribution.png")
 
     # channels to plot
     channels = ["IR_108", "WV_062-IR_108"]
