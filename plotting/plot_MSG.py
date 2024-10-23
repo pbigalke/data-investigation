@@ -10,7 +10,7 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats
-from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
+from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
 from plotting.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
 
 # %%
@@ -46,6 +46,13 @@ def create_WV_IR_diff_colormap(vmin, center, vmax, diverg_cmap=mpl.cm.seismic):
     # combine them and build a new colormap
     colors = np.vstack((colors_neg, colors_pos))
     return mpl.colors.LinearSegmentedColormap.from_list('recentered_cmap', colors)
+
+def get_msg_cmap(channelname, vmin=None, vmax=None):
+    if "-" in channelname:
+        return create_WV_IR_diff_colormap(vmin, 0, vmax)
+    else:
+        return CMAP_MSG_GREY
+
 
 # %%
 def draw_msg_colorbar(fig, ax, channelname, cmap=mpl.cm.Greys, vmin=None, vmax=None,
@@ -101,9 +108,9 @@ def msg_mask_clouds(msg_data, channelname, clear_sky_thresh):
     else:
         return np.ma.masked_greater(msg_data, clear_sky_thresh)
     
-def plot_MSG_over_map(msg_lons, msg_lats, msg_data, channelname, 
+def plot_MSG_over_map(msg_lons, msg_lats, msg_data, channelname, ax=None,
                       cmap=mpl.cm.Greys, vmin=None, vmax=None, alpha=1.0, clear_sky_thresh=None, 
-                      domain=domain_expats, projection=TRANSFORM, transform=TRANSFORM, 
+                      extent=domain_expats, ororgraphy=False, projection=TRANSFORM, transform=TRANSFORM, 
                       transparent=True, title=None, path_out=None):
     """ plot MSG brightness temp or reflectance
 
@@ -136,11 +143,12 @@ def plot_MSG_over_map(msg_lons, msg_lats, msg_data, channelname,
     ax_plot = fig.add_subplot(gs[:, 0], projection=projection)
     ax_cbar_msg = fig.add_subplot(gs[1, 1])
 
-    # draw orography
-    draw_orography_filled(ax_plot)
-    
+    if ororgraphy:
+        # draw orography
+        draw_orography_filled(ax_plot)
+        
     # draw map
-    draw_map(ax_plot, extent=domain)
+    draw_map(ax_plot, extent=extent)
 
     # draw grid    
     draw_grid(ax_plot)
