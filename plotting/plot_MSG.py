@@ -9,7 +9,7 @@ from matplotlib.gridspec import GridSpec
 import sys
 
 sys.path.append('..')
-from config. domain_info import domain_expats
+from config.domain_info import domain_expats
 from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
 from plotting.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
 
