@@ -5,4 +5,6 @@ __pycache__
 
 *.pyc
 
-nohup.out
+**/nohup.out
+
+**/s3_bucket_credentials.py
