@@ -1,3 +1,4 @@
+# Script to collect matching files from different satellites.
 import glob
 import os
 import numpy as np
@@ -7,7 +8,15 @@ sys.path.append("..")
 import helpers.datetime_helper as hlp
 
 def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=None, days=None):
-    
+    """
+    Get the MWCCH files in the study period for the given detectors.
+    :param mwcch_directory: directory where MWCCH files are stored
+    :param detectors: list of detector names to filter files
+    :param years: list of years to include
+    :param months: list of months to include (default: all months)
+    :param days: list of days to include (default: all days)
+    :return: list of matching MWCCH files
+    """
     if detectors is not None and not isinstance(detectors, list):
         detectors = [detectors]
     if years is not None and not isinstance(years, list):
@@ -36,7 +45,14 @@ def get_mwcch_files_in_study_period(mwcch_directory, detectors, years, months=No
     return mwcch_files
 
 def get_files_in_study_period(directory, years, months=None, days=None):
-    
+    """
+    Get all files in the study period for the given directory.
+    :param directory: directory where files are stored
+    :param years: list of years to include
+    :param months: list of months to include (default: all months)
+    :param days: list of days to include (default: all days)
+    :return: list of matching files
+    """
     if years is not None and not isinstance(years, (list, np.ndarray)):
         years = [years]
     if months is None:
@@ -63,7 +79,14 @@ def get_files_in_study_period(directory, years, months=None, days=None):
     return all_files
 
 def get_msg_daily_files_in_study_period(directory, years, months=None, days=None):
-    
+    """
+    Get MSG daily files in the study period for the given directory.
+    :param directory: directory where files are stored
+    :param years: list of years to include
+    :param months: list of months to include (default: all months)
+    :param days: list of days to include (default: all days)
+    :return: list of matching MSG daily files
+    """
     if years is not None and not isinstance(years, list):
         years = [years]
     if months is None:
@@ -90,7 +113,13 @@ def get_msg_daily_files_in_study_period(directory, years, months=None, days=None
     return all_files
 
 def get_file_at_msg_timestamp(directory, timestamp, msg_res=15):
-
+    """
+    Get the file(s) at the given MSG timestamp.
+    :param directory: directory where files are stored
+    :param timestamp: numpy datetime object
+    :param msg_res: MSG resolution in minutes (default: 15)
+    :return: list of matching files
+    """
     dt = hlp.get_datetimestring_from_npdatetime(timestamp)
 
     # read in all files in directory that are close to timestamp

@@ -1,9 +1,11 @@
+# Script to create gifs from different folders of images. 
+# The gifs are created with the helper function gif_maker in plotting_helpers/gif_maker.py.
 # %% 
 import os
 import glob
 import sys
 sys.path.append("..")
-from plotting.gif_maker import gif_maker
+from plotting_helpers.gif_maker import gif_maker
 
 def main():
     gif_path = "/net/merisi/pbigalke/plots/data_investigation/case_study_20220605/gifs"

@@ -1,0 +1,32 @@
+This Repository can be found here: https://github.com/pbigalke/data-investigation.git
+It contains a number of scripts to read and plot different data sources, as well as some preprocessing methods and 
+some investigations of specific datasets.
+
+**/config**
+This folder contains some info files on e.g. extent of different domains or specific folders that are recurring in the investigation.
+
+**/crop_over_hail**
+In this folder, you can find a plotting script for visualising the different procedures to crop MSG data over hail areas 
+or PMW satellite overpasses. The script crop_over_hail_or_overpass.py describes the methods to create the crop over the specific location.
+
+**/examine_PMW_file_content**
+This folder holds a number of scripts to investigate the file content of the MWCCH data from the PMW overpasses. 
+The occurences of different hail class and overpass areas are investigated. The scripts called "MWCC-H-regridded....py" 
+contain the plots created after preprocessing the MWCCH data and regrid them to MSG. The scripts called "MWCC-H_overview...py"
+contain old plots from when the data was not yet processed.
+
+**/helpers**
+Contains helper functions for handling and converting datetimes and collecting matching files from different data sources.
+
+**/plot_different_datasources**
+Contains plotting scripts for different datasets. The functions will loop over certain data and plot them using the 
+methods defined in /plotting_helpers. Some functions are not yet commented.
+
+**/plotting_helpers**
+Contains raw plotting functions for different data. These are used in /plot_different_datasources. Some functions are not yet commented.
+
+**/preprocess_data**
+Contains scripts to preprocess the MWCC-H hail probability and the Brightness Temperatures from SSMIS.
+
+**/readers**
+Contains scripts to read in different data sources and extract useful information.

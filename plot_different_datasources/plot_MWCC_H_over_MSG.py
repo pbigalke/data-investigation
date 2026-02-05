@@ -11,8 +11,8 @@ from config.domain_info import domain_expats
 import readers.read_processed_MWCC_H as mwcc
 import readers.read_MSG as msg
 import helpers.datetime_helper as hlp
-import matching_data.collect_matching_files as match
-import plotting.plot_MWCC_H as mwcc_plt
+import helpers.collect_matching_files as match
+import plotting_helpers.plot_MWCC_H as mwcc_plt
 
 # %%
 def main_loop_over_MSG(mwcch_mode="poh"):
@@ -72,7 +72,7 @@ def main_loop_over_MSG(mwcch_mode="poh"):
                 dt = hlp.get_datetimestring_from_npdatetime(timestamp)
 
                 # check if mwcch file is in this timestamp
-                mwcc_files = match.get_file_at_msg_timestamp(mwcch_path_regrid, timestamp, msg_res=msg_res)
+                mwcc_files = match.get_mwcch_file_at_msg_timestamp(mwcch_path_regrid, timestamp, msg_res=msg_res)
 
                 # read data from MWCC-H file if there is any
                 data_mwcc = mwcc.read(mwcc_files[0]) if len(mwcc_files) > 0 else None

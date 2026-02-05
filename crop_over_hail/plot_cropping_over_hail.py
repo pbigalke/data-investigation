@@ -1,3 +1,6 @@
+# This script plots different crop positions over MSG data. The crops are determined based on MWCCH-H hail data, 
+# either centered over the maximum hail area or centered over the overpass area.
+
 # %%
 import numpy as np
 import os
@@ -8,7 +11,7 @@ from config. domain_info import domain_expats, domain_expats_hail
 import readers.read_processed_MWCC_H as mwcch_read
 import matching_data.collect_matching_files as match
 import helpers.datetime_helper as hlp
-import constructing_dataset.crop_over_hail_or_overpass as cropover
+import crop_over_hail.crop_over_hail_or_overpass as cropover
 import plotting.plot_MWCC_H as mwcc_plt
 
 c_hail_area = "cyan"
@@ -20,7 +23,19 @@ c_ot = "red"
 def plot_different_crop_positions(msg_timestamp_data, mwcch_data, cropsize, min_pixel, output_path, 
                                   crops=["maxhailarea"], recenter=False, mwcch_mode="hail_class", 
                                   domain=domain_expats_hail):
+    """
+    Plot different crop positions over MSG data based on MWCCH-H hail data.
 
+    :param msg_timestamp_data: MSG data at specific timestamp
+    :param mwcch_data: MWCCH-H data from matching overpass
+    :param cropsize: Size of the crop to be extracted
+    :param min_pixel: Minimum number of pixels for the maximum hail class to be valid
+    :param output_path: Path to save the output plots
+    :param crops: List of crop types to plot, whereas "maxhailarea" crops over the maximum hail area, "overpassarea" crops over the overpass area
+    :param recenter: Whether to recenter the crop over the highest clouds within the initial crop
+    :param mwcch_mode: Which MWCCH-H data to use, e.g., "hail_class" for hail class data or "POH" for probability of hail
+    :param domain: Extent of domain, given as [minlon, maxlon, minlat, maxlat]
+    """
     # get area coverage
     overpass_area = mwcch_read.area_percentage_covered_by_overpass(mwcch_data.hail_class.values)
 

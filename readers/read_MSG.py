@@ -1,3 +1,6 @@
+# Read MSG files and extract longitude and latitude values, as well as get MSG file from timestamp.
+# Also contains old functions to convert radiances to brightness temperature and reflectances for the MSG SEVIRI data, 
+# which are not used anymore but might be useful for later reference.
 # %%
 import xarray as xr
 import os

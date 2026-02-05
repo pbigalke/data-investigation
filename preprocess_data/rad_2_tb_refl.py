@@ -1,3 +1,5 @@
+# Old script to convert radiances to brightness temperature and reflectances for the MSG SEVIRI data.
+
 #################
 # TODO:how to know which MSG satellite was used for the data????
 # -> they have different Parameters for calculation of Brightness Temp

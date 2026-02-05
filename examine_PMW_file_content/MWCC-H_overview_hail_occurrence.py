@@ -1,19 +1,18 @@
+# This script investigates the occurrence of hail in the MWCCH-H dataset. 
+# It counts the occurrence of maximum and mean hail probability levels and classes per month and satellite, 
+# and creates bar plots to visualize these occurrences.
+
 # %%
 import glob
 import xarray as xr
 import numpy as np
-import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.patches as mpatches
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 import sys
 sys.path.append("..")
 import matching_data.collect_matching_files as clct
 import readers.read_processed_MWCC_H as mwcch_read
-import MWCCH_overview_plots as mwcch_plt
-from config.domain_info import domain_expats
 
 hail_class_colors = {'no_hail': 'whitesmoke', 
                     'hail_potential': 'lightgrey', 
@@ -37,7 +36,19 @@ for h, hail in enumerate(hail_classes):
 def count_max_mean_hail_levels(path, years, months, hail_levels, 
                                 output_filename="occurrence_max_mean_hail_per_month_and_satellite",
                                 overwrite=False):
+  """
+  Count the occurrence of maximum and mean hail probability per month and satellite in the MWCCH-H dataset.
+  These counts are saved in a netCDF file to avoid having to run this counting process again while creating the plots.
 
+  :param path: Path to save the counting file to
+  :param years: array-like of years to include in the counting
+  :param months: array-like of months to include in the counting
+  :param hail_levels: array-like of hail probability levels to categorize the maximum and mean hail probabilities into
+  :param output_filename: file name of counting file, by default "occurrence_max_mean_hail_per_month_and_satellite"
+  :param overwrite: if the counting file should be overwritten, by default False
+
+  :return: xarray dataset containing the counts of maximum and mean hail probability occurrences per month and satellite
+  """
   counter_filename = f"{path}/{output_filename}.nc"
 
   if os.path.exists(counter_filename) and not overwrite:
@@ -121,6 +132,14 @@ def count_max_mean_hail_levels(path, years, months, hail_levels,
     return count_hail
   
 def get_hail_class(poh=None):
+  """
+  Get the hail class name corresponding to a given probability of hail (POH) value based on predefined thresholds.
+
+  :param poh : Probability of hail value for which to determine the hail class. 
+               If None, the function returns the list of all hail classes.
+
+  :return: Hail class name corresponding to the given POH value, or list of all hail classes if poh is None.
+  """
   hail_classes = ["no_hail", 
                   "hail_potential", 
                   "hail_initiation_graupel", 
@@ -143,12 +162,26 @@ def get_hail_class(poh=None):
       return None
     
 def get_hail_class_boundaries():
+  """
+  Return boundary probability of hail values of the hail classes.
+  """
   return [0, 0.2, 0.36, 0.45, 0.6, 1.0]
 
 def count_max_mean_hail_classes(path, years, months,
                                 output_filename="occurrence_max_mean_hail_classes",
                                 overwrite=False):
+  """
+  Count the occurrence of maximum and mean hail classes per month and satellite in the MWCCH-H dataset.
+  These counts are saved in a netCDF file to avoid having to run this counting process again while creating the plots.
 
+  :param path: Path to save the counting file to
+  :param years: array-like of years to include in the counting
+  :param months: array-like of months to include in the counting
+  :param output_filename: file name of counting file, by default "occurrence_max_mean_hail_classes"
+  :param overwrite: if the counting file should be overwritten, by default False
+
+  :return: xarray dataset containing the counts of maximum and mean hail class occurrences per month and satellite
+  """
   counter_filename = f"{path}/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
@@ -234,7 +267,12 @@ def count_max_mean_hail_classes(path, years, months,
 
 # %%
 def barplot_occurrences_per_hail_level(hail_counter, output_name=None, figsize=(10, 10), log=False):
-  
+  """
+  Create a bar plot showing the occurrence of maximum and mean hail probability levels per month and satellite in the MWCCH-H dataset.
+
+  :param hail_counter: xarray dataset containing the counts of maximum and mean hail probability occurrences per month and satellite
+  :param output_name: file name to save the plot to, if None the plot is shown instead of saved, by default None
+  """
   x_level = np.arange(0, len(hail_counter.hail_level), 1)
 
   f, (ax1, ax2) = plt.subplots(2, sharex=True)
@@ -294,7 +332,12 @@ def barplot_occurrences_per_hail_level(hail_counter, output_name=None, figsize=(
 
 def plot_occurrences_per_hail_class(hail_counter, output_name=None, figsize=(10, 5),
                                     fraction=False, log=False):
+  """
+  Create a bar plot showing the occurrence of maximum and mean hail classes per month and satellite in the MWCCH-H dataset.
   
+  :param hail_counter: xarray dataset containing the counts of maximum and mean hail class occurrences per month and satellite
+  :param output_name: file name to save the plot to, if None the plot is shown instead of saved, by default None
+  """
   f, (ax1, ax2) = plt.subplots(1, 2)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])

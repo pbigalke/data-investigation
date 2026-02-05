@@ -11,7 +11,7 @@ import sys
 # read in own methods
 sys.path.append('..')
 from readers.read_orography import read_orography
-from plotting.mpl_style import TRANSFORM, plot_cities_expats, TICKSIZE
+from plotting_helpers.mpl_style import TRANSFORM, plot_cities_expats, TICKSIZE
 from config.domain_info import domain_expats
 
 # define style for plotting orography

@@ -9,8 +9,8 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats
-from figures.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
-from figures.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
+from plotting_helpers.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
+from plotting_helpers.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
 
 # %%
 def draw_radar_colorbar(fig, ax, cmap=mpl.cm.BuPu_r, vmin=0., vmax=10., n_levels=15,

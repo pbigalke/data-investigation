@@ -1,3 +1,8 @@
+# This script contains functions to preprocess the SSMIS brightness temperature (TB) data
+# The main steps of preprocessing include:
+# 1. Reading the TB data from the original SSMIS files, which are organized in different scenes, and merging the data from all scenes into one dataset.
+# 2. Cropping the data to the domain of interest (defined in config/domain_info.py).
+# 3. Splitting the data into separate overpasses based on large time gaps between scans, and saving each overpass as a separate netCDF file with a filename that includes the date and time information of the overpass and the satellite name.
 # %%
 import xarray as xr
 import numpy as np
@@ -12,13 +17,20 @@ from readers.read_processed_SSMIS_TB import channel_info, _get_scenes
 
 # %%
 def _get_satellite_from_filename(filename):
+    """
+    Extract satellite name from filename. 
+    """
     satellites = [f"F{s:02}" for s in np.arange(8, 19, 1)]
     for sat in satellites:
         if sat in filename:
             return sat
 
 def _read_SSMIS_TB_scene(filepath, scene, dataset=None):
-
+    """
+    Read the brightness temperature (TB) data from the given SSMIS file and scene, and add the starting time of each scan to the time coordinate.
+    If a dataset is provided, the TB data from the scene will be merged to the existing dataset. 
+    If no dataset is provided, a new dataset will be created with the TB data from the scene.
+    """
     if dataset is None:
         # extract starting time of each scan from general data
         with xr.open_dataset(filepath) as data_general:
@@ -36,6 +48,9 @@ def _read_SSMIS_TB_scene(filepath, scene, dataset=None):
     return dataset
 
 def _crop_over_domain(data, domain):
+    """
+    Crop the given dataset to the given domain. The domain is defined as a list of [minlon, maxlon, minlat, maxlat].
+    """
     # select only our domain
     mask_domain = (data.lon > domain[0]) & (data.lon < domain[1]) \
         & (data.lat > domain[2]) & (data.lat < domain[3])
@@ -43,6 +58,9 @@ def _crop_over_domain(data, domain):
     return data
 
 def _generate_filename_for_overpass(data_overpass, filepath):
+    """
+    Generate a filename for the given overpass data and original filepath.
+    """
 
     # get date time information from data
     date_str = hlp.get_datestring_from_npdatetime(data_overpass.time.values[0])
@@ -56,7 +74,14 @@ def _generate_filename_for_overpass(data_overpass, filepath):
 
 
 def crop_data_and_save_overpasses(filepath, scenes, domain, output_path, suffix=""):
-    
+    """
+    Crop the data in the given SSMIS file to the given domain and save each overpass as separate netCDF file.
+    :param filepath: path to original SSMIS file
+    :param scenes: list of scenes to read from the SSMIS file
+    :param domain: list of [minlon, maxlon, minlat, maxlat
+    :param output_path: path to save the cropped netCDF files
+    :param suffix: suffix to add to the filename of the saved netCDF files (eg. to indicate the version of preprocessing)
+    """
     # read in all scenes into one dataset
     dataset = None
     for scene in scenes:

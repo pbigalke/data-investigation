@@ -1,9 +1,10 @@
+# Plots the overpasses of the different satellites in the dataset. 
+# The number of overpasses per month and year is counted by reading the file names of the dataset.
 # %%
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 import sys
 sys.path.append("..")
@@ -12,6 +13,9 @@ import matching_data.collect_matching_files as match
 import MWCCH_overview_plots as mwcch_plt
 
 def plot_satellites_contribution_and_number_of_files():
+  """
+  Plots the number of files and the contribution of each satellite to the dataset for each month and year.
+  """
   datapath = "/net/merisi/pbigalke/data/MWCC-H/netcdf"
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
   if not os.path.exists(plotpath):
@@ -27,23 +31,28 @@ def plot_satellites_contribution_and_number_of_files():
   # sat_overview = f"{plotpath}/sat_overview.png"
   mwcch_plt.plot_satellite_deployment_overview(years, months, satellites, sat_overview, figsize=(20, 6))
 
-  # plot occurence per month
+  # plot occurrence per month
   overpasses_month = f"{plotpath}/overpasses_per_month_apr-sep_expatsdomain.png"
   # overpasses_month = f"{plotpath}/overpasses_per_month.png"
   mwcch_plt.plot_occurrences_per_month(years, months, satellites, overpasses_month, figsize=(25, 6))
 
-  # plot occurence per month and satellite
+  # plot occurrence per month and satellite
   overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat_apr-sep_expatsdomain.png"
   # overpasses_sat_month = f"{plotpath}/overpasses_per_month_and_sat.png"
   mwcch_plt.plot_occurrences_per_month_and_satellite(years, months, satellites, overpasses_sat_month, figsize=(20, 15))
 
-  # plot occurence per year
+  # plot occurrence per year
   overpasses_year = f"{plotpath}/overpasses_per_year_apr-sep_expatsdomain.png"
   # overpasses_year = f"{plotpath}/overpasses_per_year.png"
   mwcch_plt.plot_occurrences_per_year(years, satellites, overpasses_year, figsize=(13, 6))
 
 def count_overpass_occurrences_expats_domain(path, years, months):
-
+  """
+  Counts the number of overpasses for each satellite, month and year in the dataset by reading the file names.
+  :param path: path to the dataset
+  :param years: list of years to count the overpasses for
+  :param months: list of months to count the overpasses for
+  """
   satellites = mwcch_plt.satellite_counter(years, months)
 
   for y, year in enumerate(years):
@@ -60,6 +69,15 @@ def count_overpass_occurrences_expats_domain(path, years, months):
   return satellites
 
 def plot_times_of_overpasses(datapath, year, month, days, output_name):
+  """
+  Plots the times of overpasses for a given month and year.
+
+  :param datapath: path to the dataset
+  :param year: year to plot the overpasses for
+  :param month: month to plot the overpasses for
+  :param days: list of days to plot the overpasses for
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, axes = plt.subplots(len(days), figsize=(20, 1.8*len(days)))
   f.suptitle("times of overpasses")
   for d in range(len(days)):
@@ -101,6 +119,10 @@ def plot_times_of_overpasses(datapath, year, month, days, output_name):
 
 # %%
 def plot_times_of_overpasses_for_different_years():
+  """
+  Plots the times of overpasses for different years and for a given month. 
+  The plots are saved in the folder "plots/data_investigation/MWCC-H_new_in_domain".
+  """
   datapath = mwcch_read.MWCCH_PATH
   plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_new_in_domain"
   if not os.path.exists(plotpath):

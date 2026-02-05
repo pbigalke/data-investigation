@@ -1,28 +1,24 @@
+# Script to plot example time series of different hail classes.
 # %%
 import numpy as np
-import pandas as pd
-import xarray as xr
-from scipy import ndimage as ndi
+import imageio
+from PIL import Image
 import glob
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from matplotlib.gridspec import GridSpec
 import os
 import sys
 sys.path.append('..')
-import construct_labelled_timeseries as clt
 import readers.read_MSG as msg_read
 import readers.read_processed_MWCC_H as mwcch_read
-import matching_data.collect_matching_files as match
 import helpers.datetime_helper as hlp
-from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
-import plotting.plot_orography_and_map as map_plt
-import plotting.plot_MSG as msg_plt
-import plotting.plot_MWCC_H as mwcch_plt
-from config.domain_info import domain_expats
+from plotting_helpers.mpl_style import TRANSFORM
+import plotting_helpers.plot_MSG as msg_plt
+import plotting_helpers.plot_MWCC_H as mwcch_plt
 
 # %%
-def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_frames, n_examples=5, output_path=None):
+def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_frames, n_examples=5, 
+                                                vmin=200, vmax=290, suffix="", output_path=None):
 
     # get all hail classes
     hail_class_names = mwcch_read.get_hail_classes(type="name")
@@ -34,7 +30,7 @@ def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_fram
         label_timeseries = sorted(glob.glob(f"{timeseries_path}/{h}_{hail}/*.nc"))
 
         # pick random 5 examples
-        label_timeseries = np.random.choice(label_timeseries, n_examples)
+        label_timeseries = np.random.choice(label_timeseries, n_examples, replace=False)
         # check if there are examples in this hail class
         if len(label_timeseries) > 0:
 
@@ -79,7 +75,7 @@ def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_fram
                         cmap = msg_plt.get_msg_cmap(channel, vmin=vmin, vmax=vmax)
                     else:
                         msg_tb = data_timestamp[channel].values
-                        vmin, vmax = 200, 270
+                        vmin, vmax = vmin, vmax
                         cmap = msg_plt.get_msg_cmap(channel)
                     
                     # draw map
@@ -106,12 +102,124 @@ def plot_timeseries_examples_for_each_hailclass(timeseries_path, channel, n_fram
                 # define output name
                 if not os.path.exists(output_path):
                     os.makedirs(output_path)
-                filename = f"{output_path}/{hail}_{n_examples}example_timeseries_{n_frames}frames_{channel}.png"
+                filename = f"{output_path}/{hail}_{n_examples}example_timeseries_{n_frames}frames_{channel}{suffix}.png"
                 plt.savefig(filename, bbox_inches='tight', transparent=True)
                 plt.close()
             else:
                 plt.show()
                 plt.close()
+
+
+#%%
+def plot_timeseries_examples_framewise(timeseries_path, channel, n_frames, n_examples=5, 
+                                       vmin=200, vmax=290, seed=42, suffix="", figsize=(10, 10), output_path=None):
+    
+
+    # get all hail classes
+    hail_class_names = mwcch_read.get_hail_classes(type="name")
+
+    for f in range(n_frames):
+
+        # set up figure
+        n_rows = len(hail_class_names)
+        n_cols = n_examples
+        fig = plt.figure(figsize=figsize, layout="constrained")
+
+        # devide figure in axes for colorbars and plot
+        gs = GridSpec(n_rows, n_cols, figure=fig)
+
+        # loop over hail classes
+        for row, hail in enumerate(hail_class_names):
+
+            # get all MSG time series files
+            label_timeseries = sorted(glob.glob(f"{timeseries_path}/{row}_{hail}/*.nc"))
+
+            # set random seed
+            np.random.seed(seed)
+            # pick random 5 examples
+            label_timeseries = np.random.choice(label_timeseries, n_examples, replace=False)
+            # check if there are examples in this hail class
+            if len(label_timeseries) > 0:
+
+                # loop over all example timeseries
+                for col, tms in enumerate(label_timeseries):
+
+                    # read in MSG_timeseries
+                    data_timeserie = msg_read.read(tms)
+
+                    # get extent of crop [minlon, maxlon, minlat, maxlat]]
+                    extent = [data_timeserie.lon.values[0], data_timeserie.lon.values[-1], data_timeserie.lat.values[0], data_timeserie.lat.values[-1]]
+
+                    # get time of this frame
+                    time = data_timeserie.time.values[f]
+
+                    # get data of this frame
+                    data_timestamp = data_timeserie.sel(time=time)
+                    
+                    # get axis 
+                    ax = fig.add_subplot(gs[row, col], projection=TRANSFORM)
+                    # set title
+                    dt_str = hlp.get_datetimestring_from_npdatetime(time)
+                    title = f"{dt_str[:8]} - {dt_str[-4:-2]}:{dt_str[-2:]}"
+                    ax.set_title(title)
+
+                    # get data of channel
+                    msg_lons = data_timestamp.lon.values
+                    msg_lats = data_timestamp.lat.values
+
+                    # select data of this timestamp and channel
+                    if "-" in channel:
+                        chan1 = channel.split("-")[0]
+                        chan2 = channel.split("-")[1]
+                        msg_tb = data_timestamp[chan1].values - data_timestamp[chan2].values
+                        vmin, vmax = -60, 5
+                        cmap = msg_plt.get_msg_cmap(channel, vmin=vmin, vmax=vmax)
+                    else:
+                        msg_tb = data_timestamp[channel].values
+                        vmin, vmax = vmin, vmax
+                        cmap = msg_plt.get_msg_cmap(channel)
+                    
+                    # draw map
+                    msg_plt.draw_map(ax, extent=extent, mode="light")
+
+                    # draw grid
+                    # define if ticks are drawn (yticks only for first col and xticks only for last row)
+                    xticks = True if row == n_examples-1 else False
+                    yticks = True if col == 0 else False
+                    msg_plt.draw_grid(ax, xticks=xticks, yticks=yticks)
+
+                    if col == 0:
+                        ax.set_ylabel(hail, fontsize=12)
+
+                    # plot msg channel over map
+                    msg_plt.plot_msg_data(ax, msg_lons, msg_lats, msg_tb, 
+                                cmap=cmap, vmin=vmin, vmax=vmax)
+
+        
+        # # save to file
+        plt.tight_layout()
+
+        if output_path is not None:
+            # define output name
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            filename = f"{output_path}/timeseries_frame{f}_{n_examples}examples_seed{seed}_{n_frames}frames_{channel}{suffix}.png"
+            plt.savefig(filename, bbox_inches='tight', transparent=False)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+
+def create_gif_from_folder(folder, output_name):
+    images = []
+    for f, filename in enumerate(sorted(os.listdir(folder))):
+        print(filename)
+        img = imageio.imread(os.path.join(folder, filename))
+        img = Image.fromarray(img).resize((2970, 2970))
+        images.append(img)
+    imageio.mimsave(output_name, images, duration=1000, loop=10)
+
 
 # %%
 def plot_hail_class_distribution(timeseries_folder, output_name=None, figsize=(8, 5)):
@@ -262,12 +370,34 @@ if __name__ == "__main__":
     # }
     # settings = case_study
 
-    plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/prestudy_timeseries"
+    # plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/prestudy_timeseries"
+    # if not os.path.exists(plot_path):
+    #     os.makedirs(plot_path)
+    # prestudy = {
+    #     # study settings
+    #     "years": np.arange(2006, 2024, 1),
+    #     "months": np.arange(4, 10, 1),
+        
+    #     # MWCC-H filters
+    #     "area_threshold": 30, 
+
+    #     # time series settings
+    #     "msg_res": 15,
+    #     "n_frames": 4,
+    #     "gap": 15,
+
+    #     # cropping settings
+    #     "cropsize": 128,
+    #     "min_pix": 5,
+    # }
+    # settings = prestudy
+
+    plot_path = "/net/merisi/pbigalke/plots/data_investigation/constructing_dataset/2022_prestudy_timeseries"
     if not os.path.exists(plot_path):
         os.makedirs(plot_path)
     prestudy = {
         # study settings
-        "years": np.arange(2006, 2024, 1),
+        "years": [2022],
         "months": np.arange(4, 10, 1),
         
         # MWCC-H filters
@@ -284,22 +414,30 @@ if __name__ == "__main__":
     }
     settings = prestudy
 
+    split_name = ['train', 'val', 'test']
+    for split in split_name[:1]:
+        timeseries_folder = "/net/merisi/pbigalke/data/labelled_MSG_timeseries/"+\
+            f"2022-2022_4-9_areathresh30_res15min_4frames_gap15min_cropsize128_min5pix/{split}"
 
-    timeseries_folder = clt.folder_from_study_settings(timeseries_path, settings["years"], settings["months"], 
-                                                       settings["area_threshold"], settings["msg_res"], settings["n_frames"], 
-                                                       settings["gap"], settings["cropsize"], settings["min_pix"])
+        # # plot hail class distribution
+        # plot_hail_class_distribution(timeseries_folder, output_name=f"{plot_path}/hail_class_distribution_{split}.png")
 
-    # plot hail class distribution
-    plot_hail_class_distribution(timeseries_folder, output_name=f"{plot_path}/hail_class_distribution.png")
+        # # plot data distribution over years
+        # plot_yearly_hailclass_distribution(timeseries_folder, settings["years"], output_name=f"{plot_path}/yearly_hailclass_distribution.png")
 
-    # plot data distribution over years
-    plot_yearly_hailclass_distribution(timeseries_folder, settings["years"], output_name=f"{plot_path}/yearly_hailclass_distribution.png")
+        # channels to plot
+        channels = ["IR_108", "WV_062-IR_108"]
+        for channel in channels:
+            # plot example timeseries
+            # plot_timeseries_examples_for_each_hailclass(timeseries_folder, channel, settings["n_frames"], n_examples=5, 
+            #                                             suffix=f"_{split}", output_path=os.path.join(plot_path, f"examples_{split}"))
 
-    # channels to plot
-    channels = ["IR_108", "WV_062-IR_108"]
-    for channel in channels:
-        # plot example timeseries
-        plot_timeseries_examples_for_each_hailclass(timeseries_folder, channel, settings["n_frames"], n_examples=5, 
-                                                    output_path=os.path.join(plot_path, "examples"))
+            for seed in [42, 25, 3]:
+                plot_frames = os.path.join(plot_path, f"examples_{split}/frames_{channel}_seed{seed}")
+                # if not os.path.exists(plot_frames):
+                #     os.makedirs(plot_frames)
+                plot_timeseries_examples_framewise(timeseries_folder, channel, settings["n_frames"], n_examples=5, 
+                                                    vmin=200, vmax=290, seed=seed, suffix=f"_{split}", output_path=plot_frames)
+                create_gif_from_folder(plot_frames, f"{plot_path}/examples_{split}/examples_all_hailclasses_{channel}_seed{seed}.gif")
 
 # %%

@@ -1,12 +1,16 @@
+# Plotting methods to visualize the satellite deployment and the number of overpasses for each satellite, month and year in the dataset.
 # %%
-import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
-import os
+from matplotlib.ticker import MultipleLocator
 
 def satellite_counter(years, months, extra_dim=1):
+  """ Creates a dictionary to count the number of overpasses for each satellite, month and year in the dataset.
+  :param years: list of years to count the overpasses for
+  :param months: list of months to count the overpasses for
+  :param extra_dim: additional dimension to count the overpasses for, e.g. area percentage or hail class, if not needed set to 1
+  """
   satellites = {# MHS
                 'meto01': {'count': np.zeros((len(years), len(months), extra_dim)), 'color': 'g', 'instrument': 'MHS'},
                 'meto02': {'count': np.zeros((len(years), len(months), extra_dim)), 'color': 'g', 'instrument': 'MHS'}, 
@@ -28,6 +32,13 @@ def satellite_counter(years, months, extra_dim=1):
   return satellites
 
 def plot_satellite_deployment_overview(years, months, satellite_counter, output_name, figsize=(13, 6)):
+  """
+  Plots an overview of the satellite deployment over the years and months in the dataset.
+  :param years: list of years to plot the satellite deployment for
+  :param months: list of months to plot the satellite deployment for
+  :param satellite_counter: dictionary containing the count of overpasses for each satellite, month and year in the dataset
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   # plot overview of used satellites over the years
   n_months = len(months)
   n_years = len(years)
@@ -73,6 +84,13 @@ def plot_satellite_deployment_overview(years, months, satellite_counter, output_
   plt.close()
 
 def plot_occurrences_per_month(years, months, satellite_counter, output_name, figsize=(20, 6)):
+  """
+  Plots the number of overpasses for each satellite, month and year in the dataset.
+  :param years: list of years to plot the overpasses for
+  :param months: list of months to plot the overpasses for
+  :param satellite_counter: dictionary containing the count of overpasses for each satellite, month and year in the dataset
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   n_months = len(months)
   n_years = len(years)
   x_month = np.arange(n_months*n_years)
@@ -117,6 +135,14 @@ def plot_occurrences_per_month(years, months, satellite_counter, output_name, fi
   plt.close()
 
 def plot_occurrences_per_month_and_satellite(years, months, satellite_counter, output_name, figsize=(20, 10)):
+  """
+  Plots the number of overpasses for each satellite, month and year in the dataset.
+  :param years: list of years to plot the overpasses for
+  :param months: list of months to plot the overpasses for
+  :param satellite_counter: dictionary containing the count of overpasses for each
+  satellite, month and year in the dataset
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   n_months = len(months)
   n_years = len(years)
   n_sats = len(satellite_counter)
@@ -174,7 +200,12 @@ def plot_occurrences_per_month_and_satellite(years, months, satellite_counter, o
   plt.close()
 
 def plot_occurrences_per_year(years, satellites, output_name, figsize=(13, 6)):
-  
+  """
+  Plots the number of overpasses for each satellite and year in the dataset.
+  :param years: list of years to plot the overpasses for
+  :param satellites: dictionary containing the count of overpasses for each satellite, month and year in the dataset
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   x_year = np.arange(0.5, len(years), 1)
 
   f = plt.figure(figsize=figsize)
@@ -205,6 +236,3 @@ def plot_occurrences_per_year(years, satellites, output_name, figsize=(13, 6)):
   plt.savefig(output_name, bbox_inches='tight')
   plt.close()
 
-
-
-# %%

@@ -1,27 +1,34 @@
+# This script counts and plots the number of overpasses per hour and area fraction covered by the overpass.
+
 # %%
 import glob
 import xarray as xr
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.patches as mpatches
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 import sys
 sys.path.append("..")
 import matching_data.collect_matching_files as clct
-import helpers.datetime_helper as hlp
 import readers.read_processed_MWCC_H as mwcch_read
-import MWCCH_overview_plots as mwcch_plt
-from config.domain_info import domain_expats
 
 
 # %%
 def count_overpasses_per_hour_and_area(path, years, months,
                                        output_filename="overpasses_per_hour_and_covered_area",
                                        overwrite=False):
+  """
+  Count the number of overpasses per hour and area fraction covered by the overpass. 
+  The results are saved to a netcdf file so that we don't need to run this again while creating the plots.
+  
+  :param path: path where to store the output file
+  :param years: list of years to consider
+  :param months: list of months to consider
+  :param output_filename: name of the output file (without .nc extension)
+  :param overwrite: whether to overwrite the output file if it already exists
 
+  :return: xarray dataset with the number of overpasses per hour and area fraction covered by the overpass
+  """
   counter_filename = f"{path}/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
@@ -100,7 +107,11 @@ def count_overpasses_per_hour_and_area(path, years, months,
     return count_overpass
 
 def set_nonvalid_datetimes_to_nan(count_overpass):
-  
+  """
+  Set the number of overpasses to nan for non valid datetimes. 
+  This is necessary because we have a lot of combinations of year, month and day that do not exist (e.g. 30th of February) 
+  and we don't want to count those as zero overpasses.
+  """
   for y in count_overpass.year.values:
     for m in count_overpass.month.values:
       for d in count_overpass.day.values:
@@ -111,10 +122,14 @@ def set_nonvalid_datetimes_to_nan(count_overpass):
   return count_overpass
 
 # %%
-# %%
 def barplot_occurrences_per_area_fraction(overpass_area, output_name=None, figsize=(10, 8),
                                           fraction=False, log=False):
-  
+  """
+  Create a bar plot of the number of overpasses per area fraction covered by the overpass.
+
+  :param overpass_area: xarray dataset with the number of overpasses per hour and area fraction covered by the overpass
+  :param output_name: name of the output file (including .png extension). If None, the plot will be shown instead of saved.
+  """
   f, (ax1, ax2) = plt.subplots(2, 1)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])

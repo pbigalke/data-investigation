@@ -14,10 +14,10 @@ import readers.read_MSG as msg
 import readers.read_radar_DWD as rad
 import helpers.datetime_helper as hlp
 from config.domain_info import domain_DE_CA
-import figures.plot_orography_and_map as plt_map
-import figures.plot_MSG as plt_msg
-import figures.plot_radar as plt_rad
-from figures.mpl_style import CMAP_MSG_COLOR, CMAP_RADAR_COLOR, TRANSFORM, LABELSIZE
+import plotting_helpers.plot_orography_and_map as plt_map
+import plotting_helpers.plot_MSG as plt_msg
+import plotting_helpers.plot_radar as plt_rad
+from plotting_helpers.mpl_style import CMAP_MSG_COLOR, CMAP_RADAR_COLOR, TRANSFORM, LABELSIZE
 
 # %%
 def plot_radar_and_MSG(msg_lons, msg_lats, msg_data, channelname, rad_lons, rad_lats, rad_RR,  

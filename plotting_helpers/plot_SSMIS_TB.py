@@ -10,8 +10,8 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats
-from figures.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
-from figures.plot_orography_and_map import draw_map, draw_grid
+from plotting_helpers.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM
+from plotting_helpers.plot_orography_and_map import draw_map, draw_grid
 
 
 # %%

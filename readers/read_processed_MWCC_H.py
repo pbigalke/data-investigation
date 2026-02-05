@@ -1,4 +1,5 @@
-
+# This script contains functions to read the processed MWCC-H output containing probability of hail, 
+# and to extract information from the file path such as date, time, satellite, and detector.
 # %%
 import xarray as xr
 import numpy as np
@@ -6,7 +7,7 @@ import re
 import os
 import sys
 sys.path.append("..")
-import matching_data.collect_matching_files as clct
+import helpers.collect_matching_files as clct
 import helpers.datetime_helper as hlp
 
 MWCCH_PATH = "/data/sat/products/PMW_sats/MWCCH_hail_probability/netcdf"

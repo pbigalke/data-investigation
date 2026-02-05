@@ -1,19 +1,16 @@
+# Script to plot the distribution of overpasses per hour, year and hail class. 
+# The number of overpasses is counted in the dataset created by count_overpasses_per_hailclass_and_hour and stored 
+# in the file "overpasses_per_hailclass_and_hour.nc". The dataset contains the number of overpasses for each combination 
+# of year, month, day, hour and hail class. The plots are saved in the folder "plots/data_investigation/MWCC-H_hail_occurrence".
 # %%
-import glob
-import xarray as xr
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.patches as mpatches
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import os
 import sys
 sys.path.append("..")
-import matching_data.collect_matching_files as clct
 import readers.read_processed_MWCC_H as mwcch_read
-import MWCCH_overview_plots as mwcch_plt
-from config.domain_info import domain_expats
 
 hail_class_colors = {'no_hail': 'whitesmoke', 
                     'hail_potential': 'lightgrey', 
@@ -32,10 +29,12 @@ clrs = [cmap(c) for c in np.linspace(0.1, 1, len(hail_classes))]
 for h, hail in enumerate(hail_classes):
   hail_class_cmap[hail] = clrs[h]
 
-
 # %%
 def set_nonvalid_datetimes_to_nan(count_overpass):
-  
+  """
+  Checks if the combination of year, month and day in the count_overpass dataset corresponds to a valid date.
+  If not, the number of overpasses for this combination is set to NaN.
+  """
   for y in count_overpass.year.values:
     for m in count_overpass.month.values:
       for d in count_overpass.day.values:
@@ -47,7 +46,12 @@ def set_nonvalid_datetimes_to_nan(count_overpass):
 
 # %%
 def barplot_occurrences_per_hail_level(hail_counter, output_name=None, figsize=(10, 10), log=False):
-  
+  """
+  Plots the number of overpasses for each hail level as a bar plot. The percentage of all overpasses is added above each bar.
+
+  :param hail_counter: xarray dataset containing the number of overpasses for each hail level
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   x_level = np.arange(0, len(hail_counter.hail_level), 1)
 
   f, (ax1, ax2) = plt.subplots(2, sharex=True)
@@ -107,7 +111,11 @@ def barplot_occurrences_per_hail_level(hail_counter, output_name=None, figsize=(
 
 def plot_occurrences_per_hail_class(hail_counter, output_name=None, figsize=(10, 5),
                                     fraction=False, log=False):
-  
+  """
+  Plots the number of overpasses for each hail class as a bar plot. The percentage of all overpasses is added above each bar.
+  :param hail_counter: xarray dataset containing the number of overpasses for each hail class
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, (ax1, ax2) = plt.subplots(1, 2)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -164,7 +172,14 @@ def plot_occurrences_per_hail_class(hail_counter, output_name=None, figsize=(10,
 
 # %%
 def sum_and_mean_overpasses_per_hour_and_year(overpass_counter, output_name=None, figsize=(14, 7), log=False):
-  
+  """
+  Plots the sum and mean of overpasses per hour and year as a heatmap. 
+  The x-axis corresponds to the hours of the day and the y-axis to the years. 
+  The color corresponds to the number of overpasses.
+
+  :param overpass_counter: xarray dataset containing the number of overpasses for each hour and year
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, (ax1, ax2) = plt.subplots(1, 2)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -209,7 +224,13 @@ def sum_and_mean_overpasses_per_hour_and_year(overpass_counter, output_name=None
     plt.close()
 
 def daily_mean_overpasses_per_year(overpass_counter, output_name=None, figsize=(14, 7)):
-  
+  """
+  Plots the mean number of daily overpasses per year as a boxplot. The x-axis corresponds to the years and the y-axis to the number of overpasses.
+  The boxplot shows the distribution of the number of overpasses per day for each year.
+
+  :param overpass_counter: xarray dataset containing the number of overpasses for each hour and year
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, ax = plt.subplots(1)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -241,7 +262,15 @@ def daily_mean_overpasses_per_year(overpass_counter, output_name=None, figsize=(
     plt.close()
 
 def overpasses_per_daytime_and_hail_class(overpass_counter, hour_interval=1, year=None, output_name=None, figsize=(10, 10), log=False):
+  """
+  Plots the mean number of overpasses, the total number of overpasses and the frequency of hail classes per hour interval and optionally per year.
+  The x-axis corresponds to the hours of the day and the y-axis to the number of overpasses or the frequency of hail classes. 
   
+  :param overpass_counter: xarray dataset containing the number of overpasses for each hour, day, month, year and hail class
+  :param hour_interval: width of the hour intervals to plot, e.g. 1 for hourly, 2 for every 2 hours, etc.
+  :param year: if not None, only the overpasses of this year are plotted, if None, the overpasses of all years are plotted
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, (ax1, ax2, ax3) = plt.subplots(3)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])

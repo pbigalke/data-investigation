@@ -1,8 +1,8 @@
+# This script generates many plots to investigate the occurence of hail classes in the MWCC-H regridded dataset.
+# To tun the plots make sure that the counter files are created with the script MWCC-H_regridded_produce_overpass_counter.py
 # %%
-import glob
 import xarray as xr
 import numpy as np
-import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
@@ -10,12 +10,15 @@ import sys
 sys.path.append("..")
 import readers.read_processed_MWCC_H as mwcch_read
 import readers.read_MSG as msg_read
-import plotting.plot_MWCC_H as mwcch_plt
+import plotting_helpers.plot_MWCC_H as mwcch_plt
 
 datapath = mwcch_read.MWCCH_MSGGRID_PATH
 plotpath = "/net/merisi/pbigalke/plots/data_investigation/MWCC-H_hail_occurrence"
 
 def load_counter_file(counter_filename):
+  """
+  Loads a counter file if it exists. The file can be created with the script MWCC-H_regridded_produce_overpass_counter.py
+  """
   if os.path.exists(counter_filename):
     print("thingy is here: ", counter_filename)
     with xr.load_dataset(counter_filename) as counter:
@@ -25,6 +28,11 @@ def load_counter_file(counter_filename):
 # %%
 # plot hail class occurrence per area 
 def occurrence_per_area_fraction(years):
+  """
+  Plots the number of overpasses per area fraction for each hail class.
+  The area fraction is defined as the percentage of the area covered by the overpass. 
+  The plot is saved in the folder "plots/data_investigation/MWCC-H_hail_occurrence".
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
@@ -48,7 +56,14 @@ def occurrence_per_area_fraction(years):
 def barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=1999, year_end=2023,
                                           output_name=None, figsize=(10, 8),
                                           fraction=False, log=False):
-  
+  """
+  Plots the number of overpasses per area fraction for each hail class as a bar plot.
+
+  :param overpass_hailclass_area: xarray dataset containing the number of overpasses per area fraction and hail class
+  :param year_start: start year of the plot
+  :param year_end: end year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, ax = plt.subplots(1)
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -90,7 +105,7 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=19
   # mark area for different crop sizes
   msglon, msglat = msg_read.get_lon_lat()
   N_pix = len(msglon) * len(msglat)
-  for crop in [128, 200]:
+  for crop in [100, 128, 200]:
     area_crop = crop * crop / N_pix * 100
     # draw vertical line
     ax.axvline(x=area_crop, color="k", linestyle="--", linewidth=0.5)
@@ -121,6 +136,11 @@ def barplot_occurrences_per_area_fraction(overpass_hailclass_area, year_start=19
 # %%
 # plot the percentage of hail classes per area threshold and year
 def occurrence_per_year_and_coveredarea():
+  """
+  Plots the percentage of hail classes per area threshold and year as a heatmap. 
+  The area threshold is defined as the minimum percentage of the area covered by the overpass. 
+  The plot is saved in the folder "plots/data_investigation/MWCC-H_hail_occurrence".
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
@@ -131,7 +151,13 @@ def occurrence_per_year_and_coveredarea():
     hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, year_start=y, output_name=out)
 
 def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, year_start=2006, output_name=None):
-  
+  """
+  Plots the percentage of hail classes per area threshold and year as a heatmap.
+  :param overpass_year_hailclass_area: xarray dataset containing the number of overpasses per area fraction, hail class and year
+  :param year_start: start year of the plot
+  :param year_end: end year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   # get hail classes  
   hail_classes = overpass_year_hailclass_area.hail_class.values 
 
@@ -220,6 +246,9 @@ def hailclass_percentage_per_area_thresh_and_year(overpass_year_hailclass_area, 
 
 # %%
 def hailclass_development_per_area_thresholds():
+  """
+  Plots the development of hail classes per area thresholds over the years.
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
@@ -234,7 +263,13 @@ def hailclass_development_per_area_thresholds():
 
 def plot_hailclass_development_per_areathresh(overpass_area_year_hail, area_thresh, year_start=2006,
                                               output_name=None, figsize=(10, 15)):
-  
+  """
+  Plots the development of hail classes per area thresholds over the years.
+  :param overpass_area_year_hail: xarray dataset containing the number of overpasses per area fraction, hail class and year
+  :param area_thresh: list of area thresholds to plot
+  :param year_start: start year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   # number of area thresholds
   N_thresh = len(area_thresh)
   colors = plt.cm.viridis(np.linspace(0, 1, N_thresh))
@@ -309,6 +344,10 @@ def plot_hailclass_development_per_areathresh(overpass_area_year_hail, area_thre
 # %%
 # plot the distribution of hail classes per area thresholds
 def hailclass_distribution_per_area_thresholds(years):
+  """
+  Plots the distribution of hail classes per area thresholds.
+  :param years: list of years to plot the distribution for
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_hailclass_area = load_counter_file(counter_file)
@@ -322,7 +361,14 @@ def hailclass_distribution_per_area_thresholds(years):
 def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thresh, 
                                                year_start=2006, year_end=2023, output_name=None, 
                                                figsize=(15, 5)):
-  
+  """
+  Plots the distribution of hail classes per area thresholds.
+  :param overpass_hailclass_area: xarray dataset containing the number of overpasses per area fraction, hail class and year
+  :param area_thresh: list of area thresholds to plot
+  :param year_start: start year of the plot
+  :param year_end: end year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, axes = plt.subplots(1, 2, layout='constrained', width_ratios=[2, 3])
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -410,6 +456,9 @@ def plot_hailclass_distribution_per_areathresh(overpass_hailclass_area, area_thr
 
 # %%
 def hailclass_distribution_and_development_for_area_threshold():
+  """
+  Plots the distribution and development of hail classes for different area thresholds.
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_area.nc"
   overpass_year_hailclass_area = load_counter_file(counter_file)
@@ -429,7 +478,13 @@ def hailclass_distribution_and_development_for_area_threshold():
 
 def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, area_threshold=0, year_start=2006, 
                                                 output_name=None, figsize=(15, 5), fraction=False, only_hail=False):
-  
+  """
+  Plots the distribution and development of hail classes for a given area threshold.
+  :param overpass_year_hailclass_area: xarray dataset containing the number of overpasses per area fraction, hail class and year
+  :param area_threshold: area threshold to plot
+  :param year_start: start year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   f, (ax1, ax2) = plt.subplots(1, 2, width_ratios=[1,2])
   f.set_figheight(figsize[1])
   f.set_figwidth(figsize[0])
@@ -508,6 +563,9 @@ def plot_hailclass_distribution_and_development(overpass_year_hailclass_area, ar
 
 # %%
 def hailclass_overpass_per_satellite_year_and_area_threshold():
+  """ 
+  Plots the number of overpasses per satellite, year and area threshold for each hail class as a heatmap.
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hour_hailclass_covered_area_sat.nc"
   overpass_satellite_area = load_counter_file(counter_file)
@@ -524,7 +582,14 @@ def hailclass_overpass_per_satellite_year_and_area_threshold():
 
 def satellite_overpasses_per_area_thresh_and_year(overpass_hailclass_hour_area_sat, year_start=2006, 
                                                   hail_class=None, hail_class_name="all", output_name=None):
-  
+  """ 
+  Plots the number of overpasses per satellite, year and area threshold for a given hail class as a heatmap.
+  :param overpass_hailclass_hour_area_sat: xarray dataset containing the number of overpasses per year, hour, hail class, area fraction and satellite
+  :param year_start: start year of the plot
+  :param hail_class: hail class to plot, if None all hail classes are plotted
+  :param hail_class_name: name of the hail class to plot, used for title and output file name
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   # get satellites  
   sats = overpass_hailclass_hour_area_sat.sat.values
 
@@ -613,6 +678,9 @@ def satellite_overpasses_per_area_thresh_and_year(overpass_hailclass_hour_area_s
 # %%
 # plot the distribution of hail classes per min_pixel
 def hailclass_distribution_per_min_pixel_for_areathresh():
+  """ 
+  Plots the distribution of hail classes per minimum pixel and area thresholds.
+  """
   # define plot path and file name of specific counter file
   counter_file = f"{datapath}/statistics/overpasses_per_year_hailclass_minpix_and_covered_area.nc"
   overpass_hailclass_minpix_area = load_counter_file(counter_file)
@@ -630,7 +698,13 @@ def hailclass_distribution_per_min_pixel_for_areathresh():
 
 def plot_hailclass_distribution_per_min_pixel_for_areathresh(overpass_hailclass_area, area_thresholds, 
                                                 year_start=2006, output_name=None):
-
+  """ 
+  Plots the distribution of hail classes per minimum pixel and area thresholds.
+  :param overpass_hailclass_area: xarray dataset containing the number of overpasses per area fraction, hail class and minimum pixel
+  :param area_thresholds: list of area thresholds to plot
+  :param year_start: start year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
   # filter for year_start and sum over all years
   overpass_hailclass_area = overpass_hailclass_area.sel(year=slice(year_start, None)).sum(dim="year")
 
@@ -704,7 +778,14 @@ def plot_hailclass_distribution_per_min_pixel_for_areathresh(overpass_hailclass_
 
 def plot_files_per_min_pixel_and_areathresh_for_hailclasses(overpass_hailclass_area, area_thresh, 
                                                             year_start=2006, output_name=None):
- # number of area thresholds
+  """
+  Plots the number of files per minimum pixel and area thresholds for each hail class.
+  :param overpass_hailclass_area: xarray dataset containing the number of overpasses per area fraction, hail class and minimum pixel
+  :param area_thresh: list of area thresholds to plot
+  :param year_start: start year of the plot
+  :param output_name: name of the output file to save the plot, if None the plot is shown
+  """
+  # number of area thresholds
   N_thresh = len(area_thresh)
   colors = plt.cm.viridis(np.linspace(0, 1, N_thresh))
 
@@ -775,10 +856,13 @@ def plot_files_per_min_pixel_and_areathresh_for_hailclasses(overpass_hailclass_a
 
 # %%
 if __name__ == "__main__":
-  # print("plot hail class occurrence per area for 1999-2023")
-  # occurrence_per_area_fraction(np.arange(1999, 2024, 1))
-  # print("plot hail class occurrence per area for 2006-2023")
-  # occurrence_per_area_fraction(np.arange(2006, 2024, 1))
+
+  print("plot hail class occurrence per area for 1999-2023")
+  occurrence_per_area_fraction(np.arange(1999, 2024, 1))
+  print("plot hail class occurrence per area for 2006-2023")
+  occurrence_per_area_fraction(np.arange(2006, 2024, 1))
+  print("plot hail class occurrence per area for 2013-2023")
+  occurrence_per_area_fraction(np.arange(2013, 2024, 1))
 
   # print("plot hail class occurrence per year and covered area")
   # occurrence_per_year_and_coveredarea()
@@ -797,8 +881,8 @@ if __name__ == "__main__":
   # print("plot overpasses per satellite, year and area threshold")
   # hailclass_overpass_per_satellite_year_and_area_threshold()
 
-  print("plot hail class distribution per min pixel for different area thresholds")
-  hailclass_distribution_per_min_pixel_for_areathresh()
+  # print("plot hail class distribution per min pixel for different area thresholds")
+  # hailclass_distribution_per_min_pixel_for_areathresh()
 
 
 # %%

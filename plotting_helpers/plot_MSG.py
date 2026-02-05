@@ -10,8 +10,8 @@ import sys
 
 sys.path.append('..')
 from config.domain_info import domain_expats
-from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
-from plotting.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
+from plotting_helpers.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
+from plotting_helpers.plot_orography_and_map import draw_orography_filled, draw_map, draw_grid
 
 # %%
 channels = {
@@ -170,7 +170,6 @@ def plot_MSG_over_map(msg_lons, msg_lats, msg_data, channelname, ax=None,
     if path_out is not None:
         plt.savefig(path_out, bbox_inches='tight', transparent=transparent)
         plt.close()
-        print('file saved')
     else:
         plt.show()
         plt.close()

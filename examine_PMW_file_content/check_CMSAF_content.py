@@ -1,3 +1,5 @@
+# Tiny script to print the file content of the CMSAF SSMIS files. 
+
 # %%
 import xarray as xr
 import glob

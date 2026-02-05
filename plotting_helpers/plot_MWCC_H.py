@@ -10,9 +10,9 @@ import sys
 
 sys.path.append('..')
 from config. domain_info import domain_expats, domain_expats_hail
-from plotting.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
-import plotting.plot_orography_and_map as map_plt
-import plotting.plot_MSG as msg_plt
+from plotting_helpers.mpl_style import LABELSIZE, TICKSIZE, TRANSFORM, CMAP_MSG_GREY
+import plotting_helpers.plot_orography_and_map as map_plt
+import plotting_helpers.plot_MSG as msg_plt
 import readers.read_processed_MWCC_H as mwcch
 
 hail_class_colors = {'no_hail': 'whitesmoke', 

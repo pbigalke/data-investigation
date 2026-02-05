@@ -1,3 +1,10 @@
+# This script contains functions to preprocess the MWCCH-H data, which contains the probability of hail (POH) values 
+# derived from passive microwave satellite observations. 
+# The main steps of preprocessing include:
+# 1. Saving the raw MWCCH-H data as netCDF files, but only over the domain of interest (defined in config/domain_info.py).
+# 2. Adding a new variable "hail_class" to the netCDF files, which categorizes the POH values into different hail classes based on predefined thresholds.
+# 3. Regridding the MWCCH-H data to the regular MSG grid, which is a common grid used for satellite data analysis, and saving the regridded data as new netCDF files. 
+# 4. Testing the regridding method on one example file and plotting the original and regridded data to check if it works properly.
 # %%
 import os
 import glob
@@ -6,14 +13,13 @@ import pandas as pd
 import scipy
 from scipy.interpolate import griddata
 import numpy as np
-import datetime
 import sys
 sys.path.append("..")
 # import my own script
-import matching_data.collect_matching_files as match
+import helpers.collect_matching_files as match
 import readers.read_processed_MWCC_H as mwcch
 import readers.read_MSG as msg
-import plotting.plot_MWCC_H as mwcch_plt
+import plotting_helpers.plot_MWCC_H as mwcch_plt
 from config.domain_info import domain_expats
 
 mwcch_path_raw = "/data/sat/products/PMW_sats/MWCCH_hail_probability/MWCC-H_raw"
@@ -22,6 +28,9 @@ mwcch_path_netcdf_msggrid = "/data/sat/products/PMW_sats/MWCCH_hail_probability/
 
 # %%
 def save_all_MWCCH_data_as_netcdf():
+    """
+    Save all MWCCH data as netCDF files.
+    """
     path = mwcch_path_raw
     output_path = mwcch_path_netcdf
     years = [2022]
@@ -49,6 +58,11 @@ def save_all_MWCCH_data_as_netcdf():
         count += 1
 
 def add_hail_class_to_netcdf():
+    """
+    Add hail class to all MWCCH netCDF files. Hail classes are defined based on the probability of hail (POH) values, 
+    which are already included in the netCDF files. The hail class is added as a new variable to the netCDF file, 
+    which can be used for further analysis and plotting.
+    """
     output_path = mwcch_path_netcdf
 
     # read all files in directory
@@ -75,7 +89,10 @@ def add_hail_class_to_netcdf():
         count += 1
 
 def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
-
+    """
+    Regrid all MWCCH data to the regular MSG grid and save as new netCDF files. 
+    :param overwrite: If False, existing regridded files will not be overwritten and will be skipped.
+    """
     original_path = mwcch_path_netcdf
     #all_files = sorted(glob.glob(f"{original_path}/*/*/*/*.nc"))
     output_path = mwcch_path_netcdf_msggrid
@@ -127,7 +144,13 @@ def regrid_all_MWCCH_data_to_MSG_grid(overwrite=False):
     print("total number of (new) files: ", count, flush=True)
 
 def regrid_and_save_file(mwcch_file, msg_lon, msg_lat, output_file):
-
+    """
+    Regrid the data in the given MWCCH file to the regular MSG grid and save as new netCDF file.
+    :param mwcch_file: path to original MWCCH netCDF file
+    :param msg_lon: longitudes of regular MSG grid
+    :param msg_lat: latitudes of regular MSG grid
+    :param output_file: path to save regridded netCDF file
+    """
     # read hail data
     data = mwcch.read(mwcch_file)
 
@@ -209,6 +232,11 @@ def regrid_file_to_MSG(points_lon, points_lat, points_values, msg_lon, msg_lat, 
     return new_data 
 
 def test_regridding_on_example(check_existing=False):
+    """
+    Testint the regridding method on one example file and plot the original and regridded data to check if it works properly.
+    :param check_existing: If True, the regridded file will only be generated if it does not already exist. 
+                           If False, the regridded file will be generated and overwritten if it already exists.
+    """
     example = f"{mwcch_path_netcdf}/2022/06/05/20220605_S0518_E0522_SSMIS_f16.nc"
     example_regrid = f"{mwcch_path_netcdf_msggrid}/2022/06/05/20220605_S0518_E0522_SSMIS_f16.nc"
     data = mwcch.read(example)
@@ -234,7 +262,9 @@ def test_regridding_on_example(check_existing=False):
                                       title="regridded to MSG grid", path_out=os.path.join(plot_path, f"MWCCH_{mode}_MSG_grid.png"))
 
 def add_hail_class_to_netcdf(mwcch_file):
-    
+    """
+    Add hail class to the given MWCCH netCDF file. 
+    """
     with xr.open_dataset(mwcch_file) as ds:
         
         if "hail_class" in list(ds.keys()):
@@ -248,7 +278,12 @@ def add_hail_class_to_netcdf(mwcch_file):
 
 # %%
 def save_mwcch_over_domain_as_netcdf(mwcch_file, domain, output_path=None):
-    
+    """
+    Save the data in the given MWCCH file as netCDF file, but only over the given domain.
+    :param mwcch_file: path to original MWCCH file
+    :param domain: dict containing "minlon", "maxlon", "minlat", "maxlat" to define the domain to save the data over
+    :param output_path: path to save netCDF file, if None file will not be saved but only read and cropped
+    """
     # read in data file
     data = _read_raw_mwcch_file(mwcch_file, domain=domain)
 

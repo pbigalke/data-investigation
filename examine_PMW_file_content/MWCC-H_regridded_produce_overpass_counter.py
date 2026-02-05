@@ -1,3 +1,5 @@
+# This script generates counter files containing the number of overpasses for each year, month, day, hour, 
+# hail class and area percentage in the dataset.
 # %%
 import glob
 import xarray as xr
@@ -14,7 +16,14 @@ datapath = mwcch_read.MWCCH_MSGGRID_PATH
 def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
                                                       output_filename="overpasses_per_year_hour_hailclass_covered_area_sat",
                                                       overwrite=False):
-
+  """
+  Counts the number of overpasses for each satellite, year, hour, hail class and area percentage in the dataset.
+  :param path: path to the dataset
+  :param years: list of years to count the overpasses for
+  :param output_filename: name of the output file to save the counter, if None the counter is returned as an xarray dataset
+  :param overwrite: if True, the counter is calculated and saved to file even if the output file already exists, 
+                    if False, the counter is loaded from file if it exists, otherwise it is calculated and saved to file
+  """
   counter_filename = f"{path}/statistics/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
@@ -105,7 +114,15 @@ def count_overpasses_per_year_hour_hailclass_area_and_sat(path, years,
 def count_overpasses_per_hour_hailclass_and_area(path, years, months,
                                                 output_filename="overpasses_per_hour_hailclass_and_covered_area",
                                                 overwrite=False):
-
+  """
+  Counts the number of overpasses for each year, month, day, hour, hail class and area percentage in the dataset.
+  :param path: path to the dataset
+  :param years: list of years to count the overpasses for
+  :param months: list of months to count the overpasses for
+  :param output_filename: name of the output file to save the counter, if None the counter is returned as an xarray dataset
+  :param overwrite: if True, the counter is calculated and saved to file even if the output file already exists, 
+                    if False, the counter is loaded from file if it exists, otherwise it is calculated and saved to file
+  """
   counter_filename = f"{path}/statistics/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
@@ -193,7 +210,14 @@ def count_overpasses_per_hour_hailclass_and_area(path, years, months,
 def count_overpasses_per_year_hailclass_minpix_and_area(path, years, 
                                                 output_filename="overpasses_per_year_hailclass_minpix_and_covered_area",
                                                 overwrite=False):
-
+  """
+  Counts the number of overpasses for each year, hail class, min pixel and area percentage in the dataset.
+  :param path: path to the dataset
+  :param years: list of years to count the overpasses for
+  :param output_filename: name of the output file to save the counter, if None the counter is returned as an xarray dataset
+  :param overwrite: if True, the counter is calculated and saved to file even if the output file already exists, 
+                    if False, the counter is loaded from file if it exists, otherwise it is calculated and saved to file
+  """
   counter_filename = f"{path}/statistics/{output_filename}.nc"
   if os.path.exists(counter_filename) and not overwrite:
     print("thingy is here")
@@ -266,9 +290,12 @@ def count_overpasses_per_year_hailclass_minpix_and_area(path, years,
     count_overpass.to_netcdf(counter_filename)
     return count_overpass
 
-
 def set_nonvalid_datetimes_to_nan(count_overpass):
-  
+  """
+  Sets the number of overpasses to nan for non valid datetimes (e.g. 30th of February) in the counter dataset.
+  :param count_overpass: xarray dataset containing the counter of overpasses with dimensions year, month and day
+  :return: xarray dataset with non valid datetimes set to nan
+  """
   for y in count_overpass.year.values:
     for m in count_overpass.month.values:
       for d in count_overpass.day.values:
@@ -279,12 +306,22 @@ def set_nonvalid_datetimes_to_nan(count_overpass):
   return count_overpass
 
 def sum_over_dimension_and_save(counter, dim, output_filename):
+  """
+  Sums the counter over the specified dimension and saves the result to a new file.
+  :param counter: xarray dataset containing the counter of overpasses
+  :param dim: list of dimensions to sum over
+  :param output_filename: name of the output file to save the summed counter, if None the summed counter is returned as an xarray dataset
+  """
   # save to file
   print("saving to file: ", output_filename)
   counter.sum(dim=dim).to_netcdf(output_filename)
   return
 
 def load_counter_file(counter_filename):
+  """
+  Loads the counter file if it exists, otherwise returns None.
+  :param counter_filename: name of the counter file to load
+  """
   if os.path.exists(counter_filename):
     print("thingy is here")
     with xr.load_dataset(counter_filename) as counter:
@@ -293,6 +330,9 @@ def load_counter_file(counter_filename):
 
 # %%
 def create_smaller_counter_from_larger_one():
+  """
+  Creates smaller counter files by summing the larger counter file over the specified dimensions.
+  """
   with xr.load_dataset(f"{datapath}/statistics/overpasses_per_hour_hailclass_and_covered_area.nc") as counter:
 
     # save new file only dependent on hail class, year and area percentage

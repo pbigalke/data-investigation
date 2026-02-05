@@ -1,3 +1,4 @@
+# Tiny script to print the file content of the original MWCCH-H files.
 # use conda env my_satpy_env
 
 # %%
