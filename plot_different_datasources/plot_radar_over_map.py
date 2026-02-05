@@ -9,8 +9,8 @@ sys.path.append('..')
 import readers.read_radar_DWD as rad
 import helpers.datetime_helper as hlp
 from config.domain_info import domain_DE_CA
-from figures.plot_radar import plot_radar_over_map
-from figures.mpl_style import CMAP_RADAR_COLOR
+from plotting_helpers.plot_radar import plot_radar_over_map
+from plotting_helpers.mpl_style import CMAP_RADAR_COLOR
 
 # %%
 def main():
